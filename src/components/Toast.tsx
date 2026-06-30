@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 
 interface ToastProps {
   message: string
@@ -10,31 +10,22 @@ interface ToastProps {
 }
 
 export default function Toast({ message, price, visible, onDismiss }: ToastProps) {
-  const [rendered, setRendered] = useState(false)
-
   useEffect(() => {
-    if (visible) {
-      setRendered(true)
-      const t = setTimeout(() => {
-        onDismiss()
-      }, 2800)
-      return () => clearTimeout(t)
-    } else {
-      const t = setTimeout(() => setRendered(false), 300)
-      return () => clearTimeout(t)
-    }
+    if (!visible) return
+    const t = setTimeout(onDismiss, 2800)
+    return () => clearTimeout(t)
   }, [visible, onDismiss])
 
-  if (!rendered) return null
+  if (!visible) return null
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300"
+      className="fixed bottom-6 left-1/2 z-50"
       style={{
-        transform: `translate(-50%, ${visible ? "0" : "16px"})`,
-        opacity: visible ? 1 : 0,
+        transform: "translateX(-50%)",
+        animation: "afc-fade-up 0.2s ease-out",
       }}
     >
       <div
@@ -43,10 +34,7 @@ export default function Toast({ message, price, visible, onDismiss }: ToastProps
       >
         <span className="font-sans text-sm">{message}</span>
         {price !== undefined && (
-          <span
-            className="font-mono text-sm ml-auto"
-            style={{ color: "#e3a98f" }}
-          >
+          <span className="font-mono text-sm ml-auto" style={{ color: "#e3a98f" }}>
             £{price.toFixed(2)}
           </span>
         )}

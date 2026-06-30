@@ -121,7 +121,7 @@ function ProductCard({ product }: { product: Product }) {
   )
 }
 
-export default function MenuSection({ products, categories: _categories }: MenuSectionProps) {
+export default function MenuSection({ products }: MenuSectionProps) {
   const [activeTab, setActiveTab] = useState("All")
   const [search, setSearch] = useState("")
 

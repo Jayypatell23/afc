@@ -59,7 +59,7 @@ export default function OrderPreviewPage() {
             Order
           </p>
           <p className="font-mono text-sm text-dark mt-0.5">
-            #AFC-{Math.floor(Math.random() * 9000 + 1000)}
+            #AFC-0001
           </p>
         </div>
         <div className="text-right">
