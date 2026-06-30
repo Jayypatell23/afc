@@ -1,65 +1,107 @@
-import Image from "next/image";
+import { sdk } from "@/lib/medusa"
+import { MOCK_PRODUCTS, MOCK_CATEGORIES } from "@/lib/mock-data"
+import MenuSection from "@/components/MenuSection"
 
-export default function Home() {
+interface ProductVariant {
+  id: string
+  title: string
+  calculated_price?: {
+    calculated_amount: number
+    currency_code: string
+  }
+}
+
+interface Product {
+  id: string
+  title: string
+  handle: string | null
+  description: string | null
+  thumbnail: string | null
+  variants: ProductVariant[]
+  categories?: { id: string; name: string; handle: string }[]
+}
+
+interface Category {
+  id: string
+  name: string
+  handle: string
+}
+
+async function getProducts(): Promise<Product[]> {
+  try {
+    const { products } = await sdk.store.product.list({
+      fields:
+        "id,title,handle,description,thumbnail,*variants,*categories,+variants.calculated_price",
+    })
+    return (products as unknown as Product[]) ?? []
+  } catch {
+    return []
+  }
+}
+
+async function getCategories(): Promise<Category[]> {
+  try {
+    const { product_categories } = await sdk.store.category.list({
+      fields: "id,name,handle",
+    })
+    return (product_categories as unknown as Category[]) ?? []
+  } catch {
+    return []
+  }
+}
+
+export default async function HomePage() {
+  const [medusaProducts, medusaCategories] = await Promise.all([
+    getProducts(),
+    getCategories(),
+  ])
+
+  const products =
+    medusaProducts.length > 0
+      ? medusaProducts
+      : (MOCK_PRODUCTS as unknown as Product[])
+
+  const categories =
+    medusaCategories.length > 0 ? medusaCategories : MOCK_CATEGORIES
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div>
+      {/* Hero */}
+      <div className="border-b border-border">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-0">
+            {/* Left — text */}
+            <div className="py-10 md:py-14 md:pr-12">
+              <p
+                className="font-mono text-xs uppercase tracking-[0.1em] mb-5"
+                style={{ color: "#9a5b34" }}
+              >
+                Open today &middot; 11–9 &middot; Pickup &amp; delivery
+              </p>
+              <h1 className="font-serif text-3xl sm:text-4xl md:text-[2.625rem] font-semibold text-dark leading-[1.15] mb-4">
+                Fresh food, made with care,<br className="hidden sm:inline" /> served at your corner.
+              </h1>
+              <p className="font-sans text-sm text-muted leading-relaxed max-w-sm">
+                Home-style meals and snacks from Ambica Food Corner. Order
+                ahead — we&apos;ll have it fresh and ready for you.
+              </p>
+            </div>
+
+            {/* Right — photo placeholder (desktop only) */}
+            <div
+              className="hidden md:flex items-center justify-center self-stretch"
+              style={{ background: "#e7ddc8", borderLeft: "1px solid #e6dcc8" }}
+              aria-hidden="true"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <span className="font-serif text-2xl italic text-faint select-none">
+                Ambica
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
+
+      <MenuSection products={products} categories={categories} />
     </div>
-  );
+  )
 }
