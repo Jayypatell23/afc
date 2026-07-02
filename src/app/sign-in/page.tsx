@@ -134,7 +134,7 @@ export default function SignInPage() {
             href="/sign-up"
             className="text-dark font-medium hover:text-brand transition-colors"
           >
-            Create an account
+            Create an account ACCOUNT ACCOUNT
           </Link>
         </p>
       </div>
