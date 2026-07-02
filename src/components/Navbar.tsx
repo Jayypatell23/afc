@@ -13,12 +13,9 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const pathname = usePathname()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  useEffect(() => {
-    // Check if auth cookie exists
-    setIsAuthenticated(document.cookie.includes("auth=1"))
-  }, [pathname]) // Re-check when path changes
+  // Derive auth state directly — re-evaluated on each render/navigation
+  const isAuthenticated =
+    typeof window !== "undefined" && document.cookie.includes("auth=1")
   const { itemCount } = useCart()
 
   return (

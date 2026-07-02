@@ -33,20 +33,19 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([])
-  const [isLoaded, setIsLoaded] = useState(false)
-
-  useEffect(() => {
+  const [items, setItems] = useState<CartItem[]>(() => {
+    // Lazy initializer — runs once on mount, safely on the client
+    if (typeof window === "undefined") return []
     try {
       const stored = localStorage.getItem("ambica_cart")
-      if (stored) {
-        setItems(JSON.parse(stored))
-      }
+      if (stored) return JSON.parse(stored) as CartItem[]
     } catch (e) {
       console.error("Failed to load cart from localStorage", e)
     }
-    setIsLoaded(true)
-  }, [])
+    return []
+  })
+  // isLoaded is always true after first client render since initializer ran synchronously
+  const isLoaded = true
 
   useEffect(() => {
     if (isLoaded) {
