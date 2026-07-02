@@ -2,15 +2,45 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function SignUpPage() {
   const [name, setName] = useState("")
+  const [mobile, setMobile] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+
+  const router = useRouter()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+
+    if (!name.trim()) {
+      setError("Please enter your name.")
+      return
+    }
+
+    if (!mobile || !/^\d{10}$/.test(mobile.replace(/\D/g, ''))) {
+      setError("Please enter a valid 10-digit mobile number.")
+      return
+    }
+
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      setError("Please enter a valid email address.")
+      return
+    }
+
+    if (!password || password.length < 8) {
+      setError("Password must be at least 8 characters long.")
+      return
+    }
+
     // TODO: sdk.auth.register("customer", "emailpass", { first_name: name, email, password })
+    // Set a persistent cookie (30 days) for session management
+    document.cookie = "auth=1; path=/; max-age=2592000; SameSite=Lax"
+    router.push("/menu")
   }
 
   return (
@@ -57,6 +87,31 @@ export default function SignUpPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
+              required
+              className="w-full bg-transparent font-sans text-sm text-dark placeholder:text-faint pb-2 outline-none"
+              style={{
+                borderBottom: "1px solid #d3c7af",
+                borderTop: "none",
+                borderLeft: "none",
+                borderRight: "none",
+              }}
+            />
+          </div>
+
+          {/* Mobile Number */}
+          <div>
+            <label
+              htmlFor="mobile"
+              className="block font-mono text-xs uppercase tracking-[0.07em] text-faint mb-2"
+            >
+              Mobile Number
+            </label>
+            <input
+              id="mobile"
+              type="tel"
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value)}
+              placeholder="Your mobile number"
               required
               className="w-full bg-transparent font-sans text-sm text-dark placeholder:text-faint pb-2 outline-none"
               style={{
@@ -118,6 +173,13 @@ export default function SignUpPage() {
               }}
             />
           </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="text-red-500 text-sm text-center -mt-2 mb-2 font-sans">
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"

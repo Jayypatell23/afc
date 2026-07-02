@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   ReactNode,
 } from "react"
 
@@ -26,13 +27,32 @@ interface CartContextValue {
   updateQuantity: (variantId: string, quantity: number) => void
   removeItem: (variantId: string) => void
   clearCart: () => void
+  isLoaded: boolean
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  // TODO: Replace local state with Medusa cart API calls (sdk.store.cart.create, addLineItem, etc.)
   const [items, setItems] = useState<CartItem[]>([])
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("ambica_cart")
+      if (stored) {
+        setItems(JSON.parse(stored))
+      }
+    } catch (e) {
+      console.error("Failed to load cart from localStorage", e)
+    }
+    setIsLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("ambica_cart", JSON.stringify(items))
+    }
+  }, [items, isLoaded])
 
   const addItem = useCallback(
     (incoming: Omit<CartItem, "id" | "quantity"> & { quantity?: number }) => {
@@ -85,7 +105,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ items, itemCount, total, addItem, updateQuantity, removeItem, clearCart }}
+      value={{ items, itemCount, total, addItem, updateQuantity, removeItem, clearCart, isLoaded }}
     >
       {children}
     </CartContext.Provider>

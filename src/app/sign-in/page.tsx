@@ -2,14 +2,32 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function SignInPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState("demo@example.com")
+  const [password, setPassword] = useState("password123")
+  const [error, setError] = useState("")
+  const router = useRouter()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      setError("Please enter a valid email address.")
+      return
+    }
+
+    if (!password || password.length < 8) {
+      setError("Password must be at least 8 characters long.")
+      return
+    }
+
     // TODO: Implement auth with sdk.auth.login("customer", "emailpass", { email, password })
+    // Set a persistent cookie (30 days) for session management
+    document.cookie = "auth=1; path=/; max-age=2592000; SameSite=Lax"
+    router.push("/menu")
   }
 
   return (
@@ -95,6 +113,13 @@ export default function SignInPage() {
             />
           </div>
 
+          {/* Error message */}
+          {error && (
+            <div className="text-red-500 text-sm text-center -mt-2 mb-2 font-sans">
+              {error}
+            </div>
+          )}
+
           {/* Continue button */}
           <button
             type="submit"
@@ -134,7 +159,7 @@ export default function SignInPage() {
             href="/sign-up"
             className="text-dark font-medium hover:text-brand transition-colors"
           >
-            Create an account ACCOUNT ACCOUNT
+            Create an Account
           </Link>
         </p>
       </div>
