@@ -2,8 +2,7 @@ import type { Metadata } from "next"
 import { Spectral, Hanken_Grotesk, Spline_Sans_Mono } from "next/font/google"
 import "./globals.css"
 import { CartProvider } from "@/lib/cart-context"
-import Navbar from "@/components/Navbar"
-import Footer from "@/components/Footer"
+import LayoutWrapper from "@/components/LayoutWrapper"
 
 const spectral = Spectral({
   variable: "--font-spectral",
@@ -44,9 +43,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-cream text-dark antialiased">
         <CartProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <LayoutWrapper>
+            {children}
+          </LayoutWrapper>
         </CartProvider>
       </body>
     </html>

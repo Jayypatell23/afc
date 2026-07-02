@@ -22,7 +22,7 @@ export default function Toast({ message, price, visible, onDismiss }: ToastProps
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-6 left-1/2 z-50"
+      className="fixed bottom-20 left-1/2 z-[60]"
       style={{
         transform: "translateX(-50%)",
         animation: "afc-fade-up 0.2s ease-out",
