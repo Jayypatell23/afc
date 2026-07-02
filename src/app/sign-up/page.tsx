@@ -14,8 +14,18 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-56px)] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
+    <div className="min-h-[calc(100vh-56px)] flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Decorative Background Food Icons */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <CoffeeIcon className="absolute text-[#a8492f] opacity-[0.04] w-48 h-48 -rotate-12 top-10 left-[-2rem] md:left-10" />
+        <PizzaIcon className="absolute text-[#a8492f] opacity-[0.04] w-56 h-56 rotate-12 bottom-20 left-[-4rem] md:left-20" />
+        <UtensilsIcon className="absolute text-[#a8492f] opacity-[0.04] w-32 h-32 rotate-45 top-32 right-[-2rem] md:right-32" />
+        <IceCreamIcon className="absolute text-[#a8492f] opacity-[0.04] w-44 h-44 -rotate-[20deg] bottom-10 right-[-2rem] md:right-10" />
+        <ChefHatIcon className="absolute text-[#a8492f] opacity-[0.04] w-36 h-36 rotate-[15deg] top-1/2 left-[10%] -translate-y-1/2" />
+        <CoffeeIcon className="absolute text-[#a8492f] opacity-[0.04] w-40 h-40 -rotate-[30deg] top-[60%] right-[15%] -translate-y-1/2" />
+      </div>
+
+      <div className="w-full max-w-sm relative z-10 bg-[#f7f4ed]/50 backdrop-blur-sm p-8 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-[#e6dcc8]/50">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
           <span
@@ -174,6 +184,62 @@ function GoogleIcon() {
         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
         fill="#EA4335"
       />
+    </svg>
+  )
+}
+
+function CoffeeIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+      <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+      <line x1="6" x2="6" y1="2" y2="4" />
+      <line x1="10" x2="10" y1="2" y2="4" />
+      <line x1="14" x2="14" y1="2" y2="4" />
+    </svg>
+  )
+}
+
+function PizzaIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M15 11h.01" />
+      <path d="M11 15h.01" />
+      <path d="M16 16h.01" />
+      <path d="m2 16 20 6-6-20A20 20 0 0 0 2 16" />
+      <path d="M5.71 17.11a17.04 17.04 0 0 1 11.4-11.4" />
+    </svg>
+  )
+}
+
+function UtensilsIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+      <path d="M7 2v20" />
+      <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+    </svg>
+  )
+}
+
+function IceCreamIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="m7 11 4.92 9.84a1 1 0 0 0 1.78 0L19 11" />
+      <path d="M17 7a5 5 0 0 0-10 0" />
+      <path d="M13 3.5a1.5 1.5 0 0 0-1.5 1.5" />
+      <path d="M13.5 11A2.5 2.5 0 0 0 11 8.5" />
+      <path d="M10 8.5A2.5 2.5 0 0 0 7.5 11" />
+      <path d="M17.5 11A2.5 2.5 0 0 0 15 8.5" />
+    </svg>
+  )
+}
+
+function ChefHatIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
+      <line x1="6" x2="18" y1="17" y2="17" />
     </svg>
   )
 }
