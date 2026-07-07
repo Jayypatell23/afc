@@ -36,7 +36,6 @@ interface MenuSectionProps {
   categories: Category[]
 }
 
-const TABS = ["All", "Plates", "Small", "Sweet", "Drinks"]
 
 function getPrice(product: Product): number {
   return product.variants?.[0]?.calculated_price?.calculated_amount ?? 0
@@ -121,7 +120,8 @@ function ProductCard({ product }: { product: Product }) {
   )
 }
 
-export default function MenuSection({ products }: MenuSectionProps) {
+export default function MenuSection({ products, categories }: MenuSectionProps) {
+  const tabs = ["All", ...categories.map((c) => c.name)]
   const [activeTab, setActiveTab] = useState("All")
   const [search, setSearch] = useState("")
 
@@ -186,7 +186,7 @@ export default function MenuSection({ products }: MenuSectionProps) {
         role="tablist"
         aria-label="Menu categories"
       >
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = tab === activeTab
           return (
             <button
