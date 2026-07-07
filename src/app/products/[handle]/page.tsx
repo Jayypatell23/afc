@@ -2,7 +2,6 @@ import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { sdk } from "@/lib/medusa"
-import { getMockProduct } from "@/lib/mock-data"
 import ProductAddToOrder from "@/components/ProductAddToOrder"
 
 interface ProductVariant {
@@ -43,10 +42,7 @@ export default async function ProductPage({
   params: Promise<{ handle: string }>
 }) {
   const { handle } = await params
-  const medusaProduct = await getProduct(handle)
-  const mockProduct = getMockProduct(handle)
-
-  const product: Product | null = medusaProduct ?? (mockProduct as unknown as Product | null)
+  const product = await getProduct(handle)
 
   if (!product) {
     notFound()
@@ -56,9 +52,7 @@ export default async function ProductPage({
     ?? product.thumbnail
     ?? null
 
-  const description =
-    product.description ??
-    (mockProduct?.longDescription ?? null)
+  const description = product.description ?? null
 
   const variants = (product.variants ?? []).map((v) => ({
     id: v.id,

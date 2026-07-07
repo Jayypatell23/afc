@@ -1,5 +1,4 @@
 import { sdk } from "@/lib/medusa"
-import { MOCK_PRODUCTS, MOCK_CATEGORIES } from "@/lib/mock-data"
 import MenuSection from "@/components/MenuSection"
 
 interface ProductVariant {
@@ -51,18 +50,10 @@ async function getCategories(): Promise<Category[]> {
 }
 
 export default async function HomePage() {
-  const [medusaProducts, medusaCategories] = await Promise.all([
+  const [products, categories] = await Promise.all([
     getProducts(),
     getCategories(),
   ])
-
-  const products =
-    medusaProducts.length > 0
-      ? medusaProducts
-      : (MOCK_PRODUCTS as unknown as Product[])
-
-  const categories =
-    medusaCategories.length > 0 ? medusaCategories : MOCK_CATEGORIES
 
   return (
     <div>
