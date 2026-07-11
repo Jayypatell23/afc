@@ -1,8 +1,8 @@
-import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { sdk } from "@/lib/medusa"
 import ProductAddToOrder from "@/components/ProductAddToOrder"
+import { formatPrice } from "@/lib/format-price"
 
 interface ProductVariant {
   id: string
@@ -23,11 +23,13 @@ interface Product {
 }
 
 async function getProduct(handle: string): Promise<Product | null> {
+  const regionId = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID
   try {
     const { products } = await sdk.store.product.list({
       handle,
       fields:
         "id,title,handle,description,thumbnail,*variants,*images,+variants.calculated_price",
+      ...(regionId ? { region_id: regionId } : {}),
     } as Parameters<typeof sdk.store.product.list>[0])
     const list = products as unknown as Product[]
     return list?.[0] ?? null
@@ -79,11 +81,11 @@ export default async function ProductPage({
           style={{ height: 260, background: "#e7ddc8" }}
         >
           {photoUrl ? (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={photoUrl}
               alt={product.title}
-              fill
-              className="object-cover"
+              className="absolute inset-0 w-full h-full object-cover"
               loading="lazy"
             />
           ) : (
@@ -101,7 +103,7 @@ export default async function ProductPage({
             </h1>
             {variants.length === 1 && firstPrice > 0 && (
               <p className="font-mono text-sm text-dark">
-                £{firstPrice.toFixed(2)}
+                {formatPrice(firstPrice)}
               </p>
             )}
           </div>

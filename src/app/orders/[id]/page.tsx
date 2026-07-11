@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { sdk } from "@/lib/medusa"
 import OrderTracker from "@/components/OrderTracker"
+import { formatPrice } from "@/lib/format-price"
 
 interface OrderLineItem {
   id: string
@@ -155,14 +156,14 @@ export default async function OrderPage({
                   {item.quantity} × {item.title}
                 </span>
                 <span className="font-mono text-sm text-dark">
-                  £{(item.unit_price * item.quantity).toFixed(2)}
+                  {formatPrice(item.unit_price * item.quantity)}
                 </span>
               </li>
             ))}
             {orderTotal > 0 && (
               <li className="flex justify-between py-3">
                 <span className="font-sans font-semibold text-sm text-dark">Total</span>
-                <span className="font-mono text-sm text-dark">£{orderTotal.toFixed(2)}</span>
+                <span className="font-mono text-sm text-dark">{formatPrice(orderTotal)}</span>
               </li>
             )}
           </ul>

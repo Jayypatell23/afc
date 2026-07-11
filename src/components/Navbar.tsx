@@ -13,10 +13,14 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const pathname = usePathname()
-  // Derive auth state directly — re-evaluated on each render/navigation
-  const isAuthenticated =
-    typeof window !== "undefined" && document.cookie.includes("auth=1")
+  // Auth state initialised to false so server and client first render agree.
+  // The cookie is read only in useEffect (client-only, after hydration).
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const { itemCount } = useCart()
+
+  useEffect(() => {
+    setIsAuthenticated(document.cookie.includes("auth=1"))
+  }, [])
 
   return (
     <nav

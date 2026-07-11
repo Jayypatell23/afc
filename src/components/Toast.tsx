@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { formatPrice } from "@/lib/format-price"
 
 interface ToastProps {
   message: string
@@ -35,7 +36,7 @@ export default function Toast({ message, price, visible, onDismiss }: ToastProps
         <span className="font-sans text-sm">{message}</span>
         {price !== undefined && (
           <span className="font-mono text-sm ml-auto" style={{ color: "#e3a98f" }}>
-            £{price.toFixed(2)}
+            {formatPrice(price)}
           </span>
         )}
       </div>

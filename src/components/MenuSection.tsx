@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import AddToCartBtn from "@/components/AddToCartBtn"
 import EmptyState from "@/components/EmptyState"
+import { formatPrice } from "@/lib/format-price"
 
 interface ProductVariant {
   id: string
@@ -63,7 +63,9 @@ function ProductCard({ product }: { product: Product }) {
             style={{ width: 60, height: 60, background: "#e7ddc8", flexShrink: 0 }}
           >
             {product.thumbnail ? (
-              <Image
+              // Plain img avoids next/image blocking localhost and private-IP hosts
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
                 src={product.thumbnail}
                 alt={product.title}
                 width={60}
@@ -103,7 +105,7 @@ function ProductCard({ product }: { product: Product }) {
       <div className="flex flex-col items-end gap-2 shrink-0">
         {price > 0 && (
           <span className="font-mono text-sm text-dark">
-            £{price.toFixed(2)}
+          {formatPrice(price)}
           </span>
         )}
         {variant && (

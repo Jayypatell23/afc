@@ -27,13 +27,18 @@ interface Category {
 }
 
 async function getProducts(): Promise<Product[]> {
+  const regionId = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID
   try {
     const { products } = await sdk.store.product.list({
       fields:
         "id,title,handle,description,thumbnail,*variants,*categories,+variants.calculated_price",
-    })
+      // region_id is required by Medusa to calculate variant prices.
+      // Without it the API returns a pricing-context error and products come back empty.
+      ...(regionId ? { region_id: regionId } : {}),
+    } as Parameters<typeof sdk.store.product.list>[0])
     return (products as unknown as Product[]) ?? []
-  } catch {
+  } catch (err) {
+    console.error("[menu] getProducts error:", err)
     return []
   }
 }
@@ -44,10 +49,12 @@ async function getCategories(): Promise<Category[]> {
       fields: "id,name,handle",
     })
     return (product_categories as unknown as Category[]) ?? []
-  } catch {
+  } catch (err) {
+    console.error("[menu] getCategories error:", err)
     return []
   }
 }
+
 
 export default async function HomePage() {
   const [products, categories] = await Promise.all([

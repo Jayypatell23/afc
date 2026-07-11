@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useCart } from "@/lib/cart-context"
 import QtySelector from "@/components/QtySelector"
 import Toast from "@/components/Toast"
+import { formatPrice } from "@/lib/format-price"
 
 interface ProductVariant {
   id: string
@@ -93,7 +94,7 @@ export default function ProductAddToOrder({
                   </span>
                   {variant.price > 0 && (
                     <span className="font-mono text-xs text-muted">
-                      £{variant.price.toFixed(2)}
+                      {formatPrice(variant.price)}
                     </span>
                   )}
                 </button>
@@ -105,7 +106,7 @@ export default function ProductAddToOrder({
 
       {/* Price display (single variant) */}
       {variants.length === 1 && price > 0 && (
-        <p className="font-mono text-sm text-dark">£{price.toFixed(2)}</p>
+        <p className="font-mono text-sm text-dark">{formatPrice(price)}</p>
       )}
 
       {/* Qty + Add */}
@@ -117,7 +118,7 @@ export default function ProductAddToOrder({
           className="flex-1 font-sans font-semibold text-sm text-cream py-3 px-6 rounded-sm transition-opacity hover:opacity-90"
           style={{ background: "#a8492f" }}
         >
-          Add to order — £{(price * quantity).toFixed(2)}
+          Add to order — {formatPrice(price * quantity)}
         </button>
       </div>
 
