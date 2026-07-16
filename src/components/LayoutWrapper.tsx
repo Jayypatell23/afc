@@ -21,7 +21,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       
       {/* Sticky Cart Summary */}
       {showStickyCart && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#a8492f] text-cream px-4 py-3 sm:px-6 flex items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.15)] animate-in slide-in-from-bottom-2 duration-300">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-brand)] text-cream px-4 py-3 sm:px-6 flex items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.15)] animate-in slide-in-from-bottom-2 duration-300">
           <div className="font-mono text-sm tracking-wide">
             {itemCount} {itemCount === 1 ? "item" : "items"} | {formatPrice(total)}
           </div>

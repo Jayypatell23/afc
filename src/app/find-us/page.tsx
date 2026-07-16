@@ -31,7 +31,7 @@ export default function FindUsPage() {
 
       <p
         className="font-mono text-xs uppercase tracking-[0.1em] mb-3"
-        style={{ color: "#9a5b34" }}
+        style={{ color: "var(--color-amber)" }}
       >
         Location
       </p>
@@ -46,7 +46,7 @@ export default function FindUsPage() {
           <div>
             <p
               className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-              style={{ color: "#9a5b34" }}
+              style={{ color: "var(--color-amber)" }}
             >
               Address
             </p>
@@ -64,7 +64,7 @@ export default function FindUsPage() {
           {/* Map placeholder */}
           <div
             className="w-full rounded-sm flex items-center justify-center"
-            style={{ height: 200, background: "#e7ddc8", border: "1px solid #e6dcc8" }}
+            style={{ height: 200, background: "var(--color-card)", border: "1px solid var(--color-border)" }}
             aria-label="Map of Ambica Food Corner location"
           >
             <div className="text-center">
@@ -78,10 +78,10 @@ export default function FindUsPage() {
               >
                 <path
                   d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                  fill="#a8492f"
+                  fill="var(--color-brand)"
                   opacity="0.5"
                 />
-                <circle cx="12" cy="9" r="2.5" fill="#a8492f" />
+                <circle cx="12" cy="9" r="2.5" fill="var(--color-brand)" />
               </svg>
               <p className="font-mono text-xs text-muted uppercase tracking-[0.07em]">
                 Ambica Food Corner
@@ -93,7 +93,7 @@ export default function FindUsPage() {
           <div>
             <p
               className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-              style={{ color: "#9a5b34" }}
+              style={{ color: "var(--color-amber)" }}
             >
               Getting here
             </p>
@@ -118,7 +118,7 @@ export default function FindUsPage() {
         <div>
           <p
             className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-            style={{ color: "#9a5b34" }}
+            style={{ color: "var(--color-amber)" }}
           >
             Opening hours
           </p>
@@ -130,14 +130,14 @@ export default function FindUsPage() {
                   key={day}
                   className="flex justify-between py-3"
                   style={{
-                    borderBottom: "1px solid #e6dcc8",
+                    borderBottom: "1px solid var(--color-border)",
                     background: isToday ? "rgba(168, 73, 47, 0.04)" : "transparent",
                   }}
                 >
                   <span
                     className="font-sans text-sm"
                     style={{
-                      color: isToday ? "#a8492f" : "#241f1b",
+                      color: isToday ? "var(--color-brand)" : "var(--color-dark)",
                       fontWeight: isToday ? 600 : 400,
                     }}
                   >
@@ -145,7 +145,7 @@ export default function FindUsPage() {
                     {isToday && (
                       <span
                         className="font-mono text-xs ml-2"
-                        style={{ color: "#9a5b34" }}
+                        style={{ color: "var(--color-amber)" }}
                       >
                         Today
                       </span>
@@ -153,7 +153,7 @@ export default function FindUsPage() {
                   </span>
                   <span
                     className="font-mono text-sm"
-                    style={{ color: isToday ? "#241f1b" : "#6f6456" }}
+                    style={{ color: isToday ? "var(--color-dark)" : "#6f6456" }}
                   >
                     {hours}
                   </span>
@@ -164,7 +164,7 @@ export default function FindUsPage() {
 
           <div
             className="mt-6 rounded-sm px-4 py-3"
-            style={{ background: "#f0e9d8", border: "1px solid #e6dcc8" }}
+            style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
           >
             <p className="font-sans text-sm text-dark font-medium mb-1">
               Pickup &amp; local delivery
@@ -179,7 +179,7 @@ export default function FindUsPage() {
             <Link
               href="/"
               className="inline-block font-sans font-semibold text-sm text-cream py-3 px-6 rounded-sm transition-opacity hover:opacity-90"
-              style={{ background: "#a8492f" }}
+              style={{ background: "var(--color-brand)" }}
             >
               Order now
             </Link>

@@ -78,7 +78,7 @@ export default async function ProductPage({
         {/* Photo */}
         <div
           className="w-full rounded-sm overflow-hidden relative"
-          style={{ height: 260, background: "#e7ddc8" }}
+          style={{ height: 260, background: "var(--color-card)" }}
         >
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

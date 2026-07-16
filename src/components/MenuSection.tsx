@@ -53,14 +53,14 @@ function ProductCard({ product }: { product: Product }) {
   return (
     <li
       className="flex items-start justify-between gap-4 py-5"
-      style={{ borderBottom: "1px solid #e6dcc8" }}
+      style={{ borderBottom: "1px solid var(--color-border)" }}
     >
       <div className="flex items-start gap-3 flex-1 min-w-0">
         {/* Thumbnail or placeholder */}
         <Link href={`/products/${handle}`} className="shrink-0" tabIndex={-1} aria-hidden="true">
           <span
             className="block rounded-sm overflow-hidden"
-            style={{ width: 60, height: 60, background: "#e7ddc8", flexShrink: 0 }}
+            style={{ width: 60, height: 60, background: "var(--color-card)", flexShrink: 0 }}
           >
             {product.thumbnail ? (
               // Plain img avoids next/image blocking localhost and private-IP hosts
@@ -78,7 +78,7 @@ function ProductCard({ product }: { product: Product }) {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path
                     d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                    fill="#9a8d79"
+                    fill="var(--color-faint)"
                     opacity="0.4"
                   />
                 </svg>
@@ -161,7 +161,7 @@ export default function MenuSection({ products, categories }: MenuSectionProps) 
             height="14"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#9a8d79"
+            stroke="var(--color-faint)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -176,7 +176,7 @@ export default function MenuSection({ products, categories }: MenuSectionProps) 
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search the menu"
             className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint pl-9 pr-4 py-2.5 rounded-sm outline-none focus:ring-1 focus:ring-border-md"
-            style={{ border: "1px solid #e6dcc8" }}
+            style={{ border: "1px solid var(--color-border)" }}
             aria-label="Search the menu"
           />
         </div>
@@ -198,10 +198,10 @@ export default function MenuSection({ products, categories }: MenuSectionProps) 
               onClick={() => setActiveTab(tab)}
               className="font-mono text-xs uppercase tracking-[0.07em] shrink-0 transition-colors"
               style={{
-                color: isActive ? "#241f1b" : "#9a8d79",
+                color: isActive ? "var(--color-dark)" : "var(--color-faint)",
                 background: "none",
                 border: "none",
-                borderBottom: `2px solid ${isActive ? "#241f1b" : "transparent"}`,
+                borderBottom: `2px solid ${isActive ? "var(--color-dark)" : "transparent"}`,
                 marginBottom: -1,
                 cursor: "pointer",
                 paddingBottom: 12,

@@ -17,7 +17,7 @@ export default function QtySelector({
     <div
       className="inline-flex items-center"
       style={{
-        border: "1px solid #d3c7af",
+        border: "1px solid var(--color-border-md)",
         borderRadius: 3,
         overflow: "hidden",
       }}

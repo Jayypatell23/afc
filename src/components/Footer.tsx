@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <footer
       className="mt-auto"
-      style={{ borderTop: "1px solid #e6dcc8", background: "#f6f1e8" }}
+      style={{ borderTop: "1px solid var(--color-border)", background: "var(--color-cream)" }}
     >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">

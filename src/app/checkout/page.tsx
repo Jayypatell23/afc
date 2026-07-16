@@ -25,13 +25,13 @@ function TabButton({
       onClick={onClick}
       className="font-mono text-xs uppercase tracking-[0.07em] pb-3 transition-colors"
       style={{
-        color: active ? "#241f1b" : "#9a8d79",
-        borderBottom: `2px solid ${active ? "#241f1b" : "transparent"}`,
+        color: active ? "var(--color-dark)" : "var(--color-faint)",
+        borderBottom: `2px solid ${active ? "var(--color-dark)" : "transparent"}`,
         background: "none",
         border: "none",
         borderBottomStyle: "solid",
         borderBottomWidth: 2,
-        borderBottomColor: active ? "#241f1b" : "transparent",
+        borderBottomColor: active ? "var(--color-dark)" : "transparent",
         cursor: "pointer",
         paddingBottom: 12,
       }}
@@ -200,7 +200,7 @@ export default function CheckoutPage() {
         <section aria-label="Customer details">
           <p
             className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-            style={{ color: "#9a5b34" }}
+            style={{ color: "var(--color-amber)" }}
           >
             Customer details
           </p>
@@ -213,11 +213,11 @@ export default function CheckoutPage() {
                 onChange={(e) => setCustomerName(e.target.value)}
                 onBlur={handleNameBlur}
                 className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint px-4 py-2.5 rounded-sm outline-none focus:ring-1 focus:ring-border-md"
-                style={{ border: `1px solid ${errors.customerName ? "#a8492f" : "#e6dcc8"}` }}
+                style={{ border: `1px solid ${errors.customerName ? "var(--color-brand)" : "var(--color-border)"}` }}
                 aria-label="Customer Name"
               />
               {errors.customerName && (
-                <p className="font-sans text-xs mt-1" style={{ color: "#a8492f" }}>
+                <p className="font-sans text-xs mt-1" style={{ color: "var(--color-brand)" }}>
                   {errors.customerName}
                 </p>
               )}
@@ -231,11 +231,11 @@ export default function CheckoutPage() {
                 onChange={(e) => setMobileNumber(e.target.value)}
                 onBlur={handleMobileBlur}
                 className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint px-4 py-2.5 rounded-sm outline-none focus:ring-1 focus:ring-border-md"
-                style={{ border: `1px solid ${errors.mobileNumber ? "#a8492f" : "#e6dcc8"}` }}
+                style={{ border: `1px solid ${errors.mobileNumber ? "var(--color-brand)" : "var(--color-border)"}` }}
                 aria-label="Mobile Number"
               />
               {errors.mobileNumber && (
-                <p className="font-sans text-xs mt-1" style={{ color: "#a8492f" }}>
+                <p className="font-sans text-xs mt-1" style={{ color: "var(--color-brand)" }}>
                   {errors.mobileNumber}
                 </p>
               )}
@@ -247,14 +247,14 @@ export default function CheckoutPage() {
         <section aria-label="Collection point">
           <p
             className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-            style={{ color: "#9a5b34" }}
+            style={{ color: "var(--color-amber)" }}
           >
             {mode === "pickup" ? "Collect from" : "Deliver to"}
           </p>
           {mode === "pickup" ? (
             <div
               className="rounded-sm px-4 py-3"
-              style={{ background: "#f0e9d8", border: "1px solid #e6dcc8" }}
+              style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
             >
               <p className="font-sans font-semibold text-sm text-dark">Ambica Food Corner</p>
               <p className="font-sans text-sm text-muted">Shop No. 5, Main Market</p>
@@ -270,11 +270,11 @@ export default function CheckoutPage() {
                   onChange={(e) => setStreetAddress(e.target.value)}
                   onBlur={handleStreetBlur}
                   className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint px-4 py-2.5 rounded-sm outline-none focus:ring-1 focus:ring-border-md"
-                  style={{ border: `1px solid ${errors.streetAddress ? "#a8492f" : "#e6dcc8"}` }}
+                  style={{ border: `1px solid ${errors.streetAddress ? "var(--color-brand)" : "var(--color-border)"}` }}
                   aria-label="Street address"
                 />
                 {errors.streetAddress && (
-                  <p className="font-sans text-xs mt-1" style={{ color: "#a8492f" }}>
+                  <p className="font-sans text-xs mt-1" style={{ color: "var(--color-brand)" }}>
                     {errors.streetAddress}
                   </p>
                 )}
@@ -288,11 +288,11 @@ export default function CheckoutPage() {
                   onChange={(e) => setCity(e.target.value)}
                   onBlur={handleCityBlur}
                   className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint px-4 py-2.5 rounded-sm outline-none focus:ring-1 focus:ring-border-md"
-                  style={{ border: `1px solid ${errors.city ? "#a8492f" : "#e6dcc8"}` }}
+                  style={{ border: `1px solid ${errors.city ? "var(--color-brand)" : "var(--color-border)"}` }}
                   aria-label="City"
                 />
                 {errors.city && (
-                  <p className="font-sans text-xs mt-1" style={{ color: "#a8492f" }}>
+                  <p className="font-sans text-xs mt-1" style={{ color: "var(--color-brand)" }}>
                     {errors.city}
                   </p>
                 )}
@@ -306,7 +306,7 @@ export default function CheckoutPage() {
         <section aria-label="Order Notes">
           <p
             className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-            style={{ color: "#9a5b34" }}
+            style={{ color: "var(--color-amber)" }}
           >
             Order Notes (optional)
           </p>
@@ -316,7 +316,7 @@ export default function CheckoutPage() {
             onChange={(e) => setOrderNotes(e.target.value)}
             onBlur={handleNotesBlur}
             className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint px-4 py-2.5 rounded-sm outline-none focus:ring-1 focus:ring-border-md resize-none"
-            style={{ border: "1px solid #e6dcc8", minHeight: "80px" }}
+            style={{ border: "1px solid var(--color-border)", minHeight: "80px" }}
             aria-label="Order Notes"
           />
         </section>
@@ -326,13 +326,13 @@ export default function CheckoutPage() {
           <section aria-label="Order summary">
             <p
               className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-              style={{ color: "#9a5b34" }}
+              style={{ color: "var(--color-amber)" }}
             >
               Order summary
             </p>
             <div
               className="rounded-sm px-4 py-3 flex flex-col gap-2"
-              style={{ background: "#f0e9d8", border: "1px solid #e6dcc8" }}
+              style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
             >
               {items.map((item) => (
                 <div key={item.variantId} className="flex justify-between">
@@ -346,7 +346,7 @@ export default function CheckoutPage() {
               ))}
               <div
                 className="flex justify-between pt-2 mt-1"
-                style={{ borderTop: "1px solid #e6dcc8" }}
+                style={{ borderTop: "1px solid var(--color-border)" }}
               >
                 <span className="font-sans text-sm text-muted">Service</span>
                 <span className="font-mono text-sm text-muted">
@@ -369,7 +369,7 @@ export default function CheckoutPage() {
             type="button"
             onClick={handlePlaceOrder}
             className="block w-full text-center font-sans font-semibold text-sm text-cream py-3.5 rounded-sm transition-opacity hover:opacity-90 cursor-pointer"
-            style={{ background: "#a8492f" }}
+            style={{ background: "var(--color-brand)" }}
           >
             Place order · {formatPrice(orderTotal)}
           </button>

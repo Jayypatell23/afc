@@ -31,11 +31,11 @@ export default function Toast({ message, price, visible, onDismiss }: ToastProps
     >
       <div
         className="flex items-center gap-3 rounded-sm px-5 py-3 shadow-lg"
-        style={{ background: "#241f1b", color: "#f6f1e8", minWidth: 220 }}
+        style={{ background: "var(--color-dark)", color: "var(--color-cream)", minWidth: 220 }}
       >
         <span className="font-sans text-sm">{message}</span>
         {price !== undefined && (
-          <span className="font-mono text-sm ml-auto" style={{ color: "#e3a98f" }}>
+          <span className="font-mono text-sm ml-auto" style={{ color: "var(--color-toast-price)" }}>
             {formatPrice(price)}
           </span>
         )}

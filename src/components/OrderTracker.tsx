@@ -21,8 +21,8 @@ export default function OrderTracker({ steps }: OrderTrackerProps) {
                 style={{
                   width: 14,
                   height: 14,
-                  border: `2px solid ${step.completed ? "#a8492f" : "#d3c7af"}`,
-                  background: step.completed ? "#a8492f" : "transparent",
+                  border: `2px solid ${step.completed ? "var(--color-brand)" : "var(--color-border-md)"}`,
+                  background: step.completed ? "var(--color-brand)" : "transparent",
                   marginTop: 3,
                 }}
                 aria-hidden="true"
@@ -32,7 +32,7 @@ export default function OrderTracker({ steps }: OrderTrackerProps) {
                   className="w-px mt-1"
                   style={{
                     height: 36,
-                    background: step.completed ? "#a8492f" : "#e6dcc8",
+                    background: step.completed ? "var(--color-brand)" : "var(--color-border)",
                   }}
                   aria-hidden="true"
                 />
@@ -43,7 +43,7 @@ export default function OrderTracker({ steps }: OrderTrackerProps) {
             <p
               className="font-sans text-sm pb-5"
               style={{
-                color: step.completed ? "#241f1b" : "#9a8d79",
+                color: step.completed ? "var(--color-dark)" : "var(--color-faint)",
                 fontWeight: step.completed ? 600 : 400,
               }}
             >

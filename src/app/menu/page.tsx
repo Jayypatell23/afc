@@ -72,7 +72,7 @@ export default async function HomePage() {
             <div className="py-10 md:py-14 md:pr-12">
               <p
                 className="font-mono text-xs uppercase tracking-[0.1em] mb-5"
-                style={{ color: "#9a5b34" }}
+                style={{ color: "var(--color-amber)" }}
               >
                 Open today &middot; 11–9 &middot; Pickup &amp; delivery
               </p>
@@ -88,7 +88,7 @@ export default async function HomePage() {
             {/* Right — photo placeholder (desktop only) */}
             <div
               className="hidden md:flex items-center justify-center self-stretch"
-              style={{ background: "#e7ddc8", borderLeft: "1px solid #e6dcc8" }}
+              style={{ background: "var(--color-card)", borderLeft: "1px solid var(--color-border)" }}
               aria-hidden="true"
             >
               <span className="font-serif text-2xl italic text-faint select-none">

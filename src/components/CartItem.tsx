@@ -15,7 +15,7 @@ export default function CartItem({ item }: CartItemProps) {
   return (
     <li
       className="flex items-start gap-4 py-4"
-      style={{ borderBottom: "1px solid #e6dcc8" }}
+      style={{ borderBottom: "1px solid var(--color-border)" }}
     >
       {item.thumbnail && (
         // Plain img avoids next/image blocking private-IP hosts like localhost:9000
@@ -26,7 +26,7 @@ export default function CartItem({ item }: CartItemProps) {
           width={52}
           height={52}
           className="rounded-sm object-cover shrink-0"
-          style={{ background: "#e7ddc8" }}
+          style={{ background: "var(--color-card)" }}
           loading="lazy"
         />
       )}
