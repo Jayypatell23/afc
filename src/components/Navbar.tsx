@@ -19,7 +19,10 @@ export default function Navbar() {
   const { itemCount } = useCart()
 
   useEffect(() => {
-    setIsAuthenticated(document.cookie.includes("auth=1"))
+    const hasAuth = document.cookie.includes("auth=1")
+    setTimeout(() => {
+      setIsAuthenticated(hasAuth)
+    }, 0)
   }, [])
 
   return (
