@@ -40,7 +40,7 @@ export default function AddToCartBtn({
           onClick={handleAdd}
           className="font-mono text-xs uppercase tracking-[0.07em] hover:bg-dark hover:text-cream transition-colors"
           style={{
-            border: "1px solid #241f1b",
+            border: "1px solid var(--color-dark)",
             background: "transparent",
             padding: "6px 13px",
             borderRadius: 2,
@@ -53,7 +53,7 @@ export default function AddToCartBtn({
         <div 
           className="flex items-center font-mono text-xs uppercase tracking-[0.07em]"
           style={{
-            border: "1px solid #241f1b",
+            border: "1px solid var(--color-dark)",
             borderRadius: 2,
             overflow: "hidden"
           }}

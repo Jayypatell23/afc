@@ -27,7 +27,7 @@ export default function OrderPreviewPage() {
             height="28"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#a8492f"
+            stroke="var(--color-brand)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -52,7 +52,7 @@ export default function OrderPreviewPage() {
       {/* Order meta */}
       <div
         className="flex justify-between items-center rounded-sm px-4 py-3 mb-8"
-        style={{ background: "#f0e9d8", border: "1px solid #e6dcc8" }}
+        style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
       >
         <div>
           <p className="font-mono text-xs text-faint uppercase tracking-[0.07em]">
@@ -78,7 +78,7 @@ export default function OrderPreviewPage() {
       {/* Info */}
       <div
         className="rounded-sm px-4 py-4 mb-8 flex flex-col gap-1"
-        style={{ background: "#f0e9d8", border: "1px solid #e6dcc8" }}
+        style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
       >
         <p className="font-sans text-sm font-medium text-dark">
           We&apos;re getting started on your order now.

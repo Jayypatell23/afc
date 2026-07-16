@@ -27,13 +27,18 @@ interface Category {
 }
 
 async function getProducts(): Promise<Product[]> {
+  const regionId = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID
   try {
     const { products } = await sdk.store.product.list({
       fields:
         "id,title,handle,description,thumbnail,*variants,*categories,+variants.calculated_price",
-    })
+      // region_id is required by Medusa to calculate variant prices.
+      // Without it the API returns a pricing-context error and products come back empty.
+      ...(regionId ? { region_id: regionId } : {}),
+    } as Parameters<typeof sdk.store.product.list>[0])
     return (products as unknown as Product[]) ?? []
-  } catch {
+  } catch (err) {
+    console.error("[menu] getProducts error:", err)
     return []
   }
 }
@@ -44,10 +49,12 @@ async function getCategories(): Promise<Category[]> {
       fields: "id,name,handle",
     })
     return (product_categories as unknown as Category[]) ?? []
-  } catch {
+  } catch (err) {
+    console.error("[menu] getCategories error:", err)
     return []
   }
 }
+
 
 export default async function HomePage() {
   const [products, categories] = await Promise.all([
@@ -65,7 +72,7 @@ export default async function HomePage() {
             <div className="py-10 md:py-14 md:pr-12">
               <p
                 className="font-mono text-xs uppercase tracking-[0.1em] mb-5"
-                style={{ color: "#9a5b34" }}
+                style={{ color: "var(--color-amber)" }}
               >
                 Open today &middot; 11–9 &middot; Pickup &amp; delivery
               </p>
@@ -81,7 +88,7 @@ export default async function HomePage() {
             {/* Right — photo placeholder (desktop only) */}
             <div
               className="hidden md:flex items-center justify-center self-stretch"
-              style={{ background: "#e7ddc8", borderLeft: "1px solid #e6dcc8" }}
+              style={{ background: "var(--color-card)", borderLeft: "1px solid var(--color-border)" }}
               aria-hidden="true"
             >
               <span className="font-serif text-2xl italic text-faint select-none">

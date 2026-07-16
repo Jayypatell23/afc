@@ -1,9 +1,9 @@
 "use client"
 
-import Image from "next/image"
 import { useCart } from "@/lib/cart-context"
 import QtySelector from "@/components/QtySelector"
 import type { CartItem as CartItemType } from "@/lib/cart-context"
+import { formatPrice } from "@/lib/format-price"
 
 interface CartItemProps {
   item: CartItemType
@@ -15,16 +15,18 @@ export default function CartItem({ item }: CartItemProps) {
   return (
     <li
       className="flex items-start gap-4 py-4"
-      style={{ borderBottom: "1px solid #e6dcc8" }}
+      style={{ borderBottom: "1px solid var(--color-border)" }}
     >
       {item.thumbnail && (
-        <Image
+        // Plain img avoids next/image blocking private-IP hosts like localhost:9000
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
           src={item.thumbnail}
           alt={item.productTitle}
           width={52}
           height={52}
           className="rounded-sm object-cover shrink-0"
-          style={{ background: "#e7ddc8" }}
+          style={{ background: "var(--color-card)" }}
           loading="lazy"
         />
       )}
@@ -47,7 +49,7 @@ export default function CartItem({ item }: CartItemProps) {
             min={0}
           />
           <span className="font-mono text-sm text-dark">
-            £{(item.price * item.quantity).toFixed(2)}
+            {formatPrice(item.price * item.quantity)}
           </span>
         </div>
       </div>

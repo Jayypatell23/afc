@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { sdk } from "@/lib/medusa"
 import OrderTracker from "@/components/OrderTracker"
+import { formatPrice } from "@/lib/format-price"
 
 interface OrderLineItem {
   id: string
@@ -87,7 +88,7 @@ export default async function OrderPage({
             height="28"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#a8492f"
+            stroke="var(--color-brand)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -112,7 +113,7 @@ export default async function OrderPage({
       {/* Order meta */}
       <div
         className="flex justify-between items-center rounded-sm px-4 py-3 mb-8"
-        style={{ background: "#f0e9d8", border: "1px solid #e6dcc8" }}
+        style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
       >
         <div>
           <p className="font-mono text-xs text-faint uppercase tracking-[0.07em]">
@@ -140,7 +141,7 @@ export default async function OrderPage({
         <div className="mb-8">
           <p
             className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-            style={{ color: "#9a5b34" }}
+            style={{ color: "var(--color-amber)" }}
           >
             Items
           </p>
@@ -149,20 +150,20 @@ export default async function OrderPage({
               <li
                 key={item.id}
                 className="flex justify-between py-3"
-                style={{ borderBottom: "1px solid #e6dcc8" }}
+                style={{ borderBottom: "1px solid var(--color-border)" }}
               >
                 <span className="font-sans text-sm text-dark">
                   {item.quantity} × {item.title}
                 </span>
                 <span className="font-mono text-sm text-dark">
-                  £{(item.unit_price * item.quantity).toFixed(2)}
+                  {formatPrice(item.unit_price * item.quantity)}
                 </span>
               </li>
             ))}
             {orderTotal > 0 && (
               <li className="flex justify-between py-3">
                 <span className="font-sans font-semibold text-sm text-dark">Total</span>
-                <span className="font-mono text-sm text-dark">£{orderTotal.toFixed(2)}</span>
+                <span className="font-mono text-sm text-dark">{formatPrice(orderTotal)}</span>
               </li>
             )}
           </ul>
@@ -173,7 +174,7 @@ export default async function OrderPage({
       <button
         type="button"
         className="w-full font-sans text-sm font-medium text-dark py-3 rounded-sm transition-colors hover:bg-card"
-        style={{ border: "1px solid #d3c7af", background: "transparent" }}
+        style={{ border: "1px solid var(--color-border-md)", background: "transparent" }}
       >
         View receipt
       </button>

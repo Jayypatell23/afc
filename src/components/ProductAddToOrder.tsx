@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useCart } from "@/lib/cart-context"
 import QtySelector from "@/components/QtySelector"
 import Toast from "@/components/Toast"
+import { formatPrice } from "@/lib/format-price"
 
 interface ProductVariant {
   id: string
@@ -55,7 +56,7 @@ export default function ProductAddToOrder({
         <div>
           <p
             className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-            style={{ color: "#9a5b34" }}
+            style={{ color: "var(--color-amber)" }}
           >
             Size
           </p>
@@ -71,8 +72,8 @@ export default function ProductAddToOrder({
                   onClick={() => setSelectedVariantId(variant.id)}
                   className="flex items-center justify-between px-3 py-2.5 rounded-sm transition-colors text-left"
                   style={{
-                    border: `1px solid ${isSelected ? "#a8492f" : "#e6dcc8"}`,
-                    background: isSelected ? "#fdf5f2" : "transparent",
+                    border: `1px solid ${isSelected ? "var(--color-brand)" : "var(--color-border)"}`,
+                    background: isSelected ? "var(--color-border)" : "transparent",
                     cursor: "pointer",
                   }}
                 >
@@ -82,8 +83,8 @@ export default function ProductAddToOrder({
                       style={{
                         width: 12,
                         height: 12,
-                        border: `2px solid ${isSelected ? "#a8492f" : "#9a8d79"}`,
-                        background: isSelected ? "#a8492f" : "transparent",
+                        border: `2px solid ${isSelected ? "var(--color-brand)" : "var(--color-faint)"}`,
+                        background: isSelected ? "var(--color-brand)" : "transparent",
                       }}
                       aria-hidden="true"
                     />
@@ -93,7 +94,7 @@ export default function ProductAddToOrder({
                   </span>
                   {variant.price > 0 && (
                     <span className="font-mono text-xs text-muted">
-                      £{variant.price.toFixed(2)}
+                      {formatPrice(variant.price)}
                     </span>
                   )}
                 </button>
@@ -105,7 +106,7 @@ export default function ProductAddToOrder({
 
       {/* Price display (single variant) */}
       {variants.length === 1 && price > 0 && (
-        <p className="font-mono text-sm text-dark">£{price.toFixed(2)}</p>
+        <p className="font-mono text-sm text-dark">{formatPrice(price)}</p>
       )}
 
       {/* Qty + Add */}
@@ -115,9 +116,9 @@ export default function ProductAddToOrder({
           type="button"
           onClick={handleAdd}
           className="flex-1 font-sans font-semibold text-sm text-cream py-3 px-6 rounded-sm transition-opacity hover:opacity-90"
-          style={{ background: "#a8492f" }}
+          style={{ background: "var(--color-brand)" }}
         >
-          Add to order — £{(price * quantity).toFixed(2)}
+          Add to order — {formatPrice(price * quantity)}
         </button>
       </div>
 

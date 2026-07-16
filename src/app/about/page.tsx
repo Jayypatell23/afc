@@ -34,7 +34,7 @@ export default function AboutPage() {
 
       <p
         className="font-mono text-xs uppercase tracking-[0.1em] mb-3"
-        style={{ color: "#9a5b34" }}
+        style={{ color: "var(--color-amber)" }}
       >
         Our story
       </p>
@@ -62,7 +62,7 @@ export default function AboutPage() {
         {/* Photo placeholder */}
         <div
           className="rounded-sm flex items-center justify-center"
-          style={{ minHeight: 200, background: "#e7ddc8", border: "1px solid #e6dcc8" }}
+          style={{ minHeight: 200, background: "var(--color-card)", border: "1px solid var(--color-border)" }}
           aria-hidden="true"
         >
           <span className="font-serif text-xl italic text-faint select-none">
@@ -75,7 +75,7 @@ export default function AboutPage() {
       <div className="mb-14">
         <p
           className="font-mono text-xs uppercase tracking-[0.07em] mb-6"
-          style={{ color: "#9a5b34" }}
+          style={{ color: "var(--color-amber)" }}
         >
           What we&apos;re about
         </p>
@@ -84,7 +84,7 @@ export default function AboutPage() {
             <li
               key={label}
               className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-8 py-5"
-              style={{ borderBottom: "1px solid #e6dcc8" }}
+              style={{ borderBottom: "1px solid var(--color-border)" }}
             >
               <span
                 className="font-serif font-semibold text-dark shrink-0 sm:w-28"
@@ -102,7 +102,7 @@ export default function AboutPage() {
       <div className="mb-14">
         <p
           className="font-mono text-xs uppercase tracking-[0.07em] mb-4"
-          style={{ color: "#9a5b34" }}
+          style={{ color: "var(--color-amber)" }}
         >
           Our ingredients
         </p>
@@ -120,7 +120,7 @@ export default function AboutPage() {
       {/* CTA */}
       <div
         className="rounded-sm px-6 py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-        style={{ background: "#f0e9d8", border: "1px solid #e6dcc8" }}
+        style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
       >
         <div>
           <p className="font-serif text-lg font-semibold text-dark mb-1">
@@ -134,14 +134,14 @@ export default function AboutPage() {
           <Link
             href="/find-us"
             className="font-sans text-sm font-medium text-dark py-2.5 px-5 rounded-sm transition-colors hover:bg-card"
-            style={{ border: "1px solid #d3c7af" }}
+            style={{ border: "1px solid var(--color-border-md)" }}
           >
             Find us
           </Link>
           <Link
             href="/"
             className="font-sans font-semibold text-sm text-cream py-2.5 px-5 rounded-sm transition-opacity hover:opacity-90"
-            style={{ background: "#a8492f" }}
+            style={{ background: "var(--color-brand)" }}
           >
             Order now
           </Link>

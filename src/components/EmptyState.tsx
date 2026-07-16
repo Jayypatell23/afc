@@ -16,7 +16,7 @@ export default function EmptyState({ title, description, action }: EmptyStatePro
           height="20"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#9a8d79"
+          stroke="var(--color-faint)"
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"

@@ -13,10 +13,17 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const pathname = usePathname()
-  // Derive auth state directly — re-evaluated on each render/navigation
-  const isAuthenticated =
-    typeof window !== "undefined" && document.cookie.includes("auth=1")
+  // Auth state initialised to false so server and client first render agree.
+  // The cookie is read only in useEffect (client-only, after hydration).
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const { itemCount } = useCart()
+
+  useEffect(() => {
+    const hasAuth = document.cookie.includes("auth=1")
+    setTimeout(() => {
+      setIsAuthenticated(hasAuth)
+    }, 0)
+  }, [])
 
   return (
     <nav
@@ -49,8 +56,8 @@ export default function Navbar() {
                 href={href}
                 className="font-sans text-sm font-medium transition-colors"
                 style={{
-                  color: isActive ? "#241f1b" : "#9a8d79",
-                  borderBottom: isActive ? "2px solid #241f1b" : "2px solid transparent",
+                  color: isActive ? "var(--color-dark)" : "var(--color-faint)",
+                  borderBottom: isActive ? "2px solid var(--color-dark)" : "2px solid transparent",
                   paddingBottom: 2,
                 }}
               >
@@ -141,22 +148,22 @@ function ProfileDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-8 h-8 rounded-full bg-[#f7f4ed] border border-[#e6dcc8] text-dark hover:bg-[#e7ddc8] transition-colors"
+        className="flex items-center justify-center w-8 h-8 rounded-full bg-[#f7f4ed] border border-[var(--color-border)] text-dark hover:bg-[var(--color-card)] transition-colors"
         aria-label="Profile"
       >
         <UserIcon />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-cream border border-[#e6dcc8] rounded-md shadow-[0_8px_30px_rgb(0,0,0,0.08)] py-2 z-50">
-          <div className="px-4 py-3 border-b border-[#e6dcc8]">
+        <div className="absolute right-0 mt-2 w-56 bg-cream border border-[var(--color-border)] rounded-md shadow-[0_8px_30px_rgb(0,0,0,0.08)] py-2 z-50">
+          <div className="px-4 py-3 border-b border-[var(--color-border)]">
             <p className="font-sans text-sm font-medium text-dark">Demo User</p>
             <p className="font-sans text-xs text-muted truncate mt-0.5">demo@example.com</p>
           </div>
           <div className="px-2 py-2">
             <button
               onClick={handleSignOut}
-              className="w-full text-left px-2 py-1.5 font-sans text-sm font-medium text-[#a8492f] hover:bg-[#f7f4ed] rounded-sm transition-colors"
+              className="w-full text-left px-2 py-1.5 font-sans text-sm font-medium text-[var(--color-brand)] hover:bg-[#f7f4ed] rounded-sm transition-colors"
             >
               Sign out
             </button>

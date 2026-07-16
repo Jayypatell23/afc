@@ -1,7 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      // Medusa seeded product images hosted on S3
+      {
+        protocol: "https",
+        hostname: "medusa-public-images.s3.eu-west-1.amazonaws.com",
+      },
+      // Images uploaded via the Medusa admin (served from /static on the backend)
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "9000",
+        pathname: "/static/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

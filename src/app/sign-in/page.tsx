@@ -34,15 +34,15 @@ export default function SignInPage() {
     <div className="min-h-[calc(100vh-56px)] flex items-center justify-center px-4 py-12 relative overflow-hidden">
       {/* Decorative Background Food Icons */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <CoffeeIcon className="absolute text-[#a8492f] opacity-[0.04] w-48 h-48 -rotate-12 top-10 left-[-2rem] md:left-10" />
-        <PizzaIcon className="absolute text-[#a8492f] opacity-[0.04] w-56 h-56 rotate-12 bottom-20 left-[-4rem] md:left-20" />
-        <UtensilsIcon className="absolute text-[#a8492f] opacity-[0.04] w-32 h-32 rotate-45 top-32 right-[-2rem] md:right-32" />
-        <IceCreamIcon className="absolute text-[#a8492f] opacity-[0.04] w-44 h-44 -rotate-[20deg] bottom-10 right-[-2rem] md:right-10" />
-        <ChefHatIcon className="absolute text-[#a8492f] opacity-[0.04] w-36 h-36 rotate-[15deg] top-1/2 left-[10%] -translate-y-1/2" />
-        <CoffeeIcon className="absolute text-[#a8492f] opacity-[0.04] w-40 h-40 -rotate-[30deg] top-[60%] right-[15%] -translate-y-1/2" />
+        <CoffeeIcon className="absolute text-[var(--color-brand)] opacity-[0.04] w-48 h-48 -rotate-12 top-10 left-[-2rem] md:left-10" />
+        <PizzaIcon className="absolute text-[var(--color-brand)] opacity-[0.04] w-56 h-56 rotate-12 bottom-20 left-[-4rem] md:left-20" />
+        <UtensilsIcon className="absolute text-[var(--color-brand)] opacity-[0.04] w-32 h-32 rotate-45 top-32 right-[-2rem] md:right-32" />
+        <IceCreamIcon className="absolute text-[var(--color-brand)] opacity-[0.04] w-44 h-44 -rotate-[20deg] bottom-10 right-[-2rem] md:right-10" />
+        <ChefHatIcon className="absolute text-[var(--color-brand)] opacity-[0.04] w-36 h-36 rotate-[15deg] top-1/2 left-[10%] -translate-y-1/2" />
+        <CoffeeIcon className="absolute text-[var(--color-brand)] opacity-[0.04] w-40 h-40 -rotate-[30deg] top-[60%] right-[15%] -translate-y-1/2" />
       </div>
 
-      <div className="w-full max-w-sm relative z-10 bg-[#f7f4ed]/50 backdrop-blur-sm p-8 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-[#e6dcc8]/50">
+      <div className="w-full max-w-sm relative z-10 bg-[#f7f4ed]/50 backdrop-blur-sm p-8 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-[var(--color-border)]/50">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
           <span
@@ -80,7 +80,7 @@ export default function SignInPage() {
               required
               className="w-full bg-transparent font-sans text-sm text-dark placeholder:text-faint pb-2 outline-none"
               style={{
-                borderBottom: "1px solid #d3c7af",
+                borderBottom: "1px solid var(--color-border-md)",
                 borderTop: "none",
                 borderLeft: "none",
                 borderRight: "none",
@@ -105,7 +105,7 @@ export default function SignInPage() {
               required
               className="w-full bg-transparent font-sans text-sm text-dark placeholder:text-faint pb-2 outline-none"
               style={{
-                borderBottom: "1px solid #d3c7af",
+                borderBottom: "1px solid var(--color-border-md)",
                 borderTop: "none",
                 borderLeft: "none",
                 borderRight: "none",
@@ -124,7 +124,7 @@ export default function SignInPage() {
           <button
             type="submit"
             className="w-full font-sans font-semibold text-sm text-cream py-3.5 rounded-sm transition-opacity hover:opacity-90"
-            style={{ background: "#a8492f" }}
+            style={{ background: "var(--color-brand)" }}
           >
             Continue
           </button>
@@ -132,21 +132,21 @@ export default function SignInPage() {
 
         {/* OR divider */}
         <div className="flex items-center gap-3 my-6">
-          <span className="flex-1 h-px" style={{ background: "#e6dcc8" }} />
+          <span className="flex-1 h-px" style={{ background: "var(--color-border)" }} />
           <span
             className="font-mono text-xs uppercase tracking-[0.07em]"
-            style={{ color: "#9a8d79" }}
+            style={{ color: "var(--color-faint)" }}
           >
             Or
           </span>
-          <span className="flex-1 h-px" style={{ background: "#e6dcc8" }} />
+          <span className="flex-1 h-px" style={{ background: "var(--color-border)" }} />
         </div>
 
         {/* Google button */}
         <button
           type="button"
           className="w-full flex items-center justify-center gap-2 font-sans text-sm font-medium text-dark py-3 rounded-sm transition-colors hover:bg-card"
-          style={{ border: "1px solid #d3c7af", background: "transparent" }}
+          style={{ border: "1px solid var(--color-border-md)", background: "transparent" }}
         >
           <GoogleIcon />
           Continue with Google
