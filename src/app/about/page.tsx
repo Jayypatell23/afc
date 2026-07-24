@@ -26,7 +26,7 @@ export default function AboutPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
       {/* Back */}
       <Link
-        href="/"
+        href="/menu"
         className="inline-flex items-center gap-1 font-mono text-xs uppercase tracking-[0.07em] text-muted hover:text-dark transition-colors mb-8"
       >
         ← Menu

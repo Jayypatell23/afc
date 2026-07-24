@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Spectral, Hanken_Grotesk, Spline_Sans_Mono } from "next/font/google"
+import { Spectral, Hanken_Grotesk, Spline_Sans_Mono, Anton } from "next/font/google"
 import "./globals.css"
 import { CartProvider } from "@/lib/cart-context"
 import LayoutWrapper from "@/components/LayoutWrapper"
@@ -26,6 +26,13 @@ const spline = Spline_Sans_Mono({
   display: "swap",
 })
 
+const anton = Anton({
+  variable: "--font-anton",
+  subsets: ["latin"],
+  weight: ["400"],
+  display: "swap",
+})
+
 export const metadata: Metadata = {
   title: "Ambica Food Corner",
   description: "Fresh food, ordered simply — Ambica Food Corner.",
@@ -39,7 +46,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${spectral.variable} ${hanken.variable} ${spline.variable} h-full`}
+      className={`${spectral.variable} ${hanken.variable} ${spline.variable} ${anton.variable} h-full`}
     >
       <body className="min-h-full flex flex-col bg-cream text-dark antialiased">
         <CartProvider>

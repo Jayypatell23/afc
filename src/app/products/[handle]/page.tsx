@@ -4,6 +4,10 @@ import { sdk } from "@/lib/medusa"
 import ProductAddToOrder from "@/components/ProductAddToOrder"
 import { formatPrice } from "@/lib/format-price"
 
+// Product details rarely change; cache the rendered page and its data
+// fetches for 60s instead of hitting the backend on every request.
+export const revalidate = 60
+
 interface ProductVariant {
   id: string
   title: string
@@ -68,7 +72,7 @@ export default async function ProductPage({
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
       {/* Back link */}
       <Link
-        href="/"
+        href="/menu"
         className="inline-flex items-center gap-1 font-mono text-xs uppercase tracking-[0.07em] text-muted hover:text-dark transition-colors mb-6"
       >
         ← Menu

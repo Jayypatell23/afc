@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import Link from "next/link"
 import AddToCartBtn from "@/components/AddToCartBtn"
 import EmptyState from "@/components/EmptyState"
@@ -36,7 +36,6 @@ interface MenuSectionProps {
   categories: Category[]
 }
 
-
 function getPrice(product: Product): number {
   return product.variants?.[0]?.calculated_price?.calculated_amount ?? 0
 }
@@ -45,77 +44,102 @@ function getDefaultVariant(product: Product): ProductVariant | undefined {
   return product.variants?.[0]
 }
 
+// Seed descriptions end with a tag like "(Best Seller)" / "(New)" — pull that
+// out as a card badge instead of showing it as prose.
+const BADGE_PATTERN = /\s*\(([^)]+)\)\s*$/
+
+function splitDescriptionAndBadge(description: string | null): {
+  text: string | null
+  badge: string | null
+} {
+  if (!description) return { text: null, badge: null }
+  const match = description.match(BADGE_PATTERN)
+  if (!match) return { text: description, badge: null }
+  return { text: description.slice(0, match.index).trim(), badge: match[1] }
+}
+
 function ProductCard({ product }: { product: Product }) {
   const variant = getDefaultVariant(product)
   const price = getPrice(product)
   const handle = product.handle ?? product.id
+  const [imgFailed, setImgFailed] = useState(false)
+  const imgRef = useRef<HTMLImageElement>(null)
+  const { text: description, badge } = splitDescriptionAndBadge(product.description)
+
+  // A 404'd thumbnail can finish loading (and fire its error event) before
+  // hydration attaches onError — check the already-settled state on mount too.
+  useEffect(() => {
+    if (imgRef.current?.complete && imgRef.current.naturalWidth === 0) {
+      setImgFailed(true)
+    }
+  }, [])
 
   return (
     <li
-      className="flex items-start justify-between gap-4 py-5"
-      style={{ borderBottom: "1px solid var(--color-border)" }}
+      className="relative rounded-xl overflow-hidden flex flex-col"
+      style={{ background: "var(--color-cream)", border: "1px solid var(--color-border)" }}
     >
-      <div className="flex items-start gap-3 flex-1 min-w-0">
-        {/* Thumbnail or placeholder */}
-        <Link href={`/products/${handle}`} className="shrink-0" tabIndex={-1} aria-hidden="true">
-          <span
-            className="block rounded-sm overflow-hidden"
-            style={{ width: 60, height: 60, background: "var(--color-card)", flexShrink: 0 }}
-          >
-            {product.thumbnail ? (
-              // Plain img avoids next/image blocking localhost and private-IP hosts
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={product.thumbnail}
-                alt={product.title}
-                width={60}
-                height={60}
-                className="object-cover w-full h-full"
-                loading="lazy"
-              />
-            ) : (
-              <span className="w-full h-full flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                    fill="var(--color-faint)"
-                    opacity="0.4"
-                  />
-                </svg>
-              </span>
-            )}
-          </span>
+      <div className="relative shrink-0">
+        <Link
+          href={`/products/${handle}`}
+          className="relative block aspect-[4/3]"
+          style={{ background: "var(--color-card)" }}
+        >
+          {product.thumbnail && !imgFailed ? (
+            // Plain img avoids next/image blocking localhost and private-IP hosts
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              ref={imgRef}
+              src={product.thumbnail}
+              alt={product.title}
+              className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+              onError={() => setImgFailed(true)}
+            />
+          ) : (
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="font-serif italic text-faint text-lg select-none">Ambica</span>
+            </span>
+          )}
+
+          {badge && (
+            <span
+              className="absolute top-2.5 left-2.5 font-mono text-[10px] uppercase tracking-[0.06em] text-cream px-2.5 py-1 rounded-full"
+              style={{ background: "var(--color-dark)" }}
+            >
+              {badge}
+            </span>
+          )}
         </Link>
 
-        <div className="min-w-0">
-          <Link
-            href={`/products/${handle}`}
-            className="font-sans font-semibold text-sm text-dark hover:text-brand transition-colors"
-          >
-            {product.title}
-          </Link>
-          {product.description && (
-            <p className="font-sans text-xs text-muted mt-0.5 leading-relaxed line-clamp-2">
-              {product.description}
-            </p>
-          )}
-        </div>
+        {variant && (
+          <div className="absolute -bottom-4 right-3">
+            <AddToCartBtn
+              variant="circle"
+              variantId={variant.id}
+              productTitle={product.title}
+              variantTitle={variant.title}
+              price={price}
+              thumbnail={product.thumbnail ?? undefined}
+            />
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-col items-end gap-2 shrink-0">
-        {price > 0 && (
-          <span className="font-mono text-sm text-dark">
-          {formatPrice(price)}
-          </span>
+      <div className="pt-5 pb-4 px-4 flex flex-col gap-1 flex-1">
+        <Link
+          href={`/products/${handle}`}
+          className="font-sans font-semibold text-sm text-dark hover:text-brand transition-colors"
+        >
+          {product.title}
+        </Link>
+        {description && (
+          <p className="font-sans text-xs text-muted leading-relaxed line-clamp-2">
+            {description}
+          </p>
         )}
-        {variant && (
-          <AddToCartBtn
-            variantId={variant.id}
-            productTitle={product.title}
-            variantTitle={variant.title}
-            price={price}
-            thumbnail={product.thumbnail ?? undefined}
-          />
+        {price > 0 && (
+          <span className="font-mono text-sm text-dark mt-1">{formatPrice(price)}</span>
         )}
       </div>
     </li>
@@ -151,12 +175,12 @@ export default function MenuSection({ products, categories }: MenuSectionProps) 
   }, [products, activeTab, search])
 
   return (
-    <section className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+    <section>
       {/* Search */}
-      <div className="mb-6">
+      <div className="mb-5">
         <div className="relative">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
             width="14"
             height="14"
             viewBox="0 0 24 24"
@@ -175,7 +199,7 @@ export default function MenuSection({ products, categories }: MenuSectionProps) 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search the menu"
-            className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint pl-9 pr-4 py-2.5 rounded-sm outline-none focus:ring-1 focus:ring-border-md"
+            className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint pl-9 pr-4 py-2.5 rounded-full outline-none focus:ring-1 focus:ring-border-md"
             style={{ border: "1px solid var(--color-border)" }}
             aria-label="Search the menu"
           />
@@ -184,7 +208,7 @@ export default function MenuSection({ products, categories }: MenuSectionProps) 
 
       {/* Category tabs */}
       <div
-        className="flex gap-6 border-b border-border mb-6 overflow-x-auto"
+        className="flex gap-2 mb-6 overflow-x-auto pb-1"
         role="tablist"
         aria-label="Menu categories"
       >
@@ -196,15 +220,12 @@ export default function MenuSection({ products, categories }: MenuSectionProps) 
               role="tab"
               aria-selected={isActive}
               onClick={() => setActiveTab(tab)}
-              className="font-mono text-xs uppercase tracking-[0.07em] shrink-0 transition-colors"
+              className="font-mono text-xs uppercase tracking-[0.06em] shrink-0 transition-colors px-4 py-2 rounded-full"
               style={{
-                color: isActive ? "var(--color-dark)" : "var(--color-faint)",
-                background: "none",
-                border: "none",
-                borderBottom: `2px solid ${isActive ? "var(--color-dark)" : "transparent"}`,
-                marginBottom: -1,
+                color: isActive ? "var(--color-cream)" : "var(--color-muted)",
+                background: isActive ? "var(--color-brand)" : "transparent",
+                border: `1px solid ${isActive ? "var(--color-brand)" : "var(--color-border)"}`,
                 cursor: "pointer",
-                paddingBottom: 12,
               }}
             >
               {tab}
@@ -225,7 +246,7 @@ export default function MenuSection({ products, categories }: MenuSectionProps) 
         />
       ) : (
         <ul
-          className="grid grid-cols-1 md:grid-cols-2 gap-x-10"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
           role="list"
         >
           {filtered.map((product) => (

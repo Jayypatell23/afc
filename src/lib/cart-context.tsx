@@ -54,6 +54,7 @@ interface CartContextValue {
   updateQuantity: (variantId: string, quantity: number) => Promise<void>
   removeItem: (variantId: string) => Promise<void>
   clearCart: () => Promise<void>
+  resetCartState: () => void
   isLoaded: boolean
   cart: MedusaCart | null
   updateCart: (data: Record<string, unknown>) => Promise<void>
@@ -250,6 +251,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [getOrRetrieveCart])
 
+  // Drops the local reference to a cart that has already been completed into an
+  // order (or otherwise should no longer be tracked), without deleting its line
+  // items remotely — a completed cart can't have its items removed via the API.
+  const resetCartState = useCallback(() => {
+    localStorage.removeItem("medusa_cart_id")
+    setCart(null)
+  }, [])
+
   const updateCart = useCallback(
     async (data: Record<string, unknown>) => {
       const activeCart = await getOrRetrieveCart()
@@ -282,6 +291,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateQuantity,
         removeItem,
         clearCart,
+        resetCartState,
         isLoaded,
         cart,
         updateCart,
