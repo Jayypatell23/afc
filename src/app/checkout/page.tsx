@@ -5,12 +5,58 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import { formatPrice } from "@/lib/format-price"
+import { sdk } from "@/lib/medusa"
+import CartItemRow from "@/components/CartItem"
+import EmptyState from "@/components/EmptyState"
+import AuthField from "@/components/auth/AuthField"
+import {
+  ArrowRightIcon,
+  BuildingIcon,
+  LockIcon,
+  MapPinIcon,
+  PhoneIcon,
+  SpinnerIcon,
+  UserIcon,
+} from "@/components/auth/AuthIcons"
 
 type DeliveryMode = "pickup" | "delivery"
 
-const SERVICE_FEE = 0.5
+const RAZORPAY_PROVIDER_ID = "pp_razorpay_razorpay"
+const SHIPPING_OPTION_NAMES: Record<DeliveryMode, string> = {
+  pickup: "Store Pickup",
+  delivery: "Home Delivery",
+}
 
-function TabButton({
+type ShippingOption = {
+  id: string
+  name: string
+  amount: number
+}
+
+declare global {
+  interface Window {
+    Razorpay: new (options: Record<string, unknown>) => {
+      open: () => void
+      on: (event: string, handler: (response: unknown) => void) => void
+    }
+  }
+}
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true)
+      return
+    }
+    const script = document.createElement("script")
+    script.src = "https://checkout.razorpay.com/v1/checkout.js"
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
+
+function ModeTab({
   active,
   onClick,
   children,
@@ -22,18 +68,14 @@ function TabButton({
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
-      className="font-mono text-xs uppercase tracking-[0.07em] pb-3 transition-colors"
+      className="font-mono text-xs uppercase tracking-[0.06em] px-4 py-2 rounded-sm transition-all duration-200"
       style={{
-        color: active ? "var(--color-dark)" : "var(--color-faint)",
-        borderBottom: `2px solid ${active ? "var(--color-dark)" : "transparent"}`,
-        background: "none",
-        border: "none",
-        borderBottomStyle: "solid",
-        borderBottomWidth: 2,
-        borderBottomColor: active ? "var(--color-dark)" : "transparent",
-        cursor: "pointer",
-        paddingBottom: 12,
+        background: active ? "var(--color-cream)" : "transparent",
+        color: active ? "var(--color-dark)" : "var(--color-muted)",
+        boxShadow: active ? "0 1px 3px rgba(46,42,38,0.15)" : "none",
       }}
     >
       {children}
@@ -42,8 +84,11 @@ function TabButton({
 }
 
 export default function CheckoutPage() {
-  const { items, total, subtotal, clearCart, isLoaded, cart, updateCart } = useCart()
+  const { items, total, subtotal, resetCartState, isLoaded, cart, updateCart } = useCart()
   const router = useRouter()
+
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false)
+  const [orderError, setOrderError] = useState<string | null>(null)
 
   const [mode, setMode] = useState<DeliveryMode>("pickup")
   const [customerName, setCustomerName] = useState("")
@@ -60,6 +105,28 @@ export default function CheckoutPage() {
   }>({})
 
   const [hasInitialized, setHasInitialized] = useState(false)
+  const [shippingOptions, setShippingOptions] = useState<Record<DeliveryMode, ShippingOption | undefined>>({
+    pickup: undefined,
+    delivery: undefined,
+  })
+
+  // Fetch the real Pickup / Delivery shipping options (with their live prices)
+  // as soon as we have a cart, so the delivery charge shown here always matches
+  // what will actually be applied to the cart at checkout.
+  useEffect(() => {
+    if (!cart?.id) return
+    sdk.store.fulfillment
+      .listCartOptions({ cart_id: cart.id })
+      .then(({ shipping_options }) => {
+        const pickup = shipping_options?.find((o: any) => o.name === SHIPPING_OPTION_NAMES.pickup)
+        const delivery = shipping_options?.find((o: any) => o.name === SHIPPING_OPTION_NAMES.delivery)
+        setShippingOptions({
+          pickup: pickup && { id: pickup.id, name: pickup.name, amount: pickup.amount ?? 0 },
+          delivery: delivery && { id: delivery.id, name: delivery.name, amount: delivery.amount ?? 0 },
+        })
+      })
+      .catch((e) => console.error("Failed to load shipping options", e))
+  }, [cart?.id])
 
   // Restore state from Medusa cart metadata on load
   useEffect(() => {
@@ -152,239 +219,365 @@ export default function CheckoutPage() {
       return
     }
 
-    // Persist all latest data to Medusa cart metadata before routing/clearing
-    await persistMetadata({
-      customerName,
-      mobileNumber,
-      mode,
-      streetAddress: mode === "delivery" ? streetAddress : "",
-      city: mode === "delivery" ? city : "",
-      orderNotes,
-    })
+    if (!cart || items.length === 0) return
 
-    await clearCart()
-    router.push("/orders/preview")
+    setOrderError(null)
+    setIsPlacingOrder(true)
+
+    try {
+      // Persist all latest data to Medusa cart metadata before completing
+      await persistMetadata({
+        customerName,
+        mobileNumber,
+        mode,
+        streetAddress: mode === "delivery" ? streetAddress : "",
+        city: mode === "delivery" ? city : "",
+        orderNotes,
+      })
+
+      await sdk.store.cart.update(cart.id, {
+        email: `${cleanMobile}@guest.afcorner.local`,
+        shipping_address: {
+          first_name: customerName,
+          address_1: mode === "delivery" ? streetAddress : "Ambica Food Corner, Shop No. 5",
+          city: mode === "delivery" ? city : "Vaso",
+          country_code: "in",
+          phone: cleanMobile,
+        },
+      })
+
+      // Save the delivery address to the customer's address book so it shows
+      // up under Customers > Addresses in the admin. Best-effort: a failure
+      // here shouldn't block placing the order. Pickup orders use the store's
+      // own address, which isn't a customer address worth saving.
+      if (mode === "delivery") {
+        try {
+          const { addresses } = await sdk.store.customer.listAddress()
+          const alreadySaved = addresses.some(
+            (a: any) => a.address_1 === streetAddress && a.city === city
+          )
+          if (!alreadySaved) {
+            await sdk.store.customer.createAddress({
+              first_name: customerName,
+              address_1: streetAddress,
+              city,
+              country_code: "in",
+              phone: cleanMobile,
+            })
+          }
+        } catch (err) {
+          console.error("Failed to save address to customer's address book:", err)
+        }
+      }
+
+      const selectedOption = shippingOptions[mode]
+      if (!selectedOption) {
+        throw new Error(
+          `The "${SHIPPING_OPTION_NAMES[mode]}" shipping option isn't configured on the store yet.`
+        )
+      }
+      const { cart: cartWithShipping } = await sdk.store.cart.addShippingMethod(cart.id, {
+        option_id: selectedOption.id,
+      })
+
+      const { payment_collection } = await sdk.store.payment.initiatePaymentSession(
+        cartWithShipping,
+        { provider_id: RAZORPAY_PROVIDER_ID }
+      )
+      const paymentSession = payment_collection.payment_sessions?.find(
+        (s: any) => s.provider_id === RAZORPAY_PROVIDER_ID
+      )
+      const sessionData = paymentSession?.data as
+        | { razorpay_order_id?: string; amount?: number; key_id?: string }
+        | undefined
+      if (!sessionData?.razorpay_order_id || !sessionData.key_id) {
+        throw new Error("Failed to initialize the Razorpay payment session.")
+      }
+
+      const scriptLoaded = await loadRazorpayScript()
+      if (!scriptLoaded) {
+        throw new Error("Failed to load the Razorpay checkout script.")
+      }
+
+      const razorpay = new window.Razorpay({
+        key: sessionData.key_id,
+        order_id: sessionData.razorpay_order_id,
+        amount: Math.round((sessionData.amount ?? 0) * 100),
+        currency: "INR",
+        name: "Ambica Food Corner",
+        description: mode === "delivery" ? "Home Delivery order" : "Store Pickup order",
+        prefill: {
+          name: customerName,
+          contact: cleanMobile,
+        },
+        theme: { color: "#A8674A" },
+        handler: async () => {
+          try {
+            const result = await sdk.store.cart.complete(cart.id)
+            if (result.type === "order") {
+              resetCartState()
+              router.push(`/orders/${result.order.id}`)
+            } else {
+              console.error("Cart complete error:", result.error)
+              setOrderError("Payment succeeded but placing the order failed. Please contact us.")
+            }
+          } catch (err) {
+            console.error("Failed to complete order after payment:", err)
+            setOrderError("Payment succeeded but placing the order failed. Please contact us.")
+          } finally {
+            setIsPlacingOrder(false)
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setIsPlacingOrder(false)
+          },
+        },
+      })
+      razorpay.on("payment.failed", () => {
+        setOrderError("Payment failed. Please try again.")
+        setIsPlacingOrder(false)
+      })
+      razorpay.open()
+    } catch (err) {
+      console.error("Failed to place order:", err)
+      setOrderError("Something went wrong placing your order. Please try again.")
+      setIsPlacingOrder(false)
+    }
   }
 
-  const serviceTotal = items.length > 0 ? SERVICE_FEE : 0
-  const orderTotal = (total || subtotal) + serviceTotal
+  const deliveryCharge = mode === "delivery" ? shippingOptions.delivery?.amount ?? 40 : 0
+  const orderTotal = (total || subtotal) + deliveryCharge
 
   if (!isLoaded) {
     return (
-      <div className="max-w-xl mx-auto px-4 sm:px-6 py-8 flex items-center justify-center min-h-[300px]">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 flex items-center justify-center min-h-[300px]">
         <p className="font-sans text-sm text-muted animate-pulse">Loading checkout...</p>
       </div>
     )
   }
 
-  return (
-    <div className="max-w-xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="font-serif text-2xl font-semibold text-dark mb-6">Checkout</h1>
-
-      {/* Mode tabs */}
-      <div
-        className="flex gap-6 border-b border-border mb-8"
-        role="tablist"
-        aria-label="Delivery method"
-      >
-        <TabButton active={mode === "pickup"} onClick={() => handleModeChange("pickup")}>
-          Pickup
-        </TabButton>
-        <TabButton active={mode === "delivery"} onClick={() => handleModeChange("delivery")}>
-          Delivery
-        </TabButton>
+  if (items.length === 0) {
+    return (
+      <div className="max-w-xl mx-auto px-4 sm:px-6 py-8">
+        <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-dark mb-6">Checkout</h1>
+        <EmptyState
+          title="Your basket is empty"
+          description="Add something delicious from the menu before checking out."
+          action={
+            <Link
+              href="/"
+              className="inline-block font-mono text-xs uppercase tracking-[0.07em] text-brand hover:underline"
+            >
+              Browse the menu →
+            </Link>
+          }
+        />
       </div>
+    )
+  }
 
-      <div className="flex flex-col gap-8">
-        {/* Customer details */}
-        <section aria-label="Customer details">
-          <p
-            className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-            style={{ color: "var(--color-amber)" }}
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
+      <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-dark mb-8">Checkout</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 lg:gap-10 items-start">
+        {/* Delivery details card */}
+        <div
+          className="rounded-md p-5 sm:p-7 flex flex-col gap-7 order-2 lg:order-1"
+          style={{ background: "var(--color-cream)", border: "1px solid var(--color-border)" }}
+        >
+          {/* Mode toggle */}
+          <div
+            role="tablist"
+            aria-label="Delivery method"
+            className="inline-flex p-1 rounded-md gap-1 w-fit"
+            style={{ background: "var(--color-card)" }}
           >
-            Customer details
-          </p>
-          <div className="flex flex-col gap-3">
-            <div>
-              <input
-                type="text"
-                placeholder="Customer Name"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                onBlur={handleNameBlur}
-                className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint px-4 py-2.5 rounded-sm outline-none focus:ring-1 focus:ring-border-md"
-                style={{ border: `1px solid ${errors.customerName ? "var(--color-brand)" : "var(--color-border)"}` }}
-                aria-label="Customer Name"
-              />
-              {errors.customerName && (
-                <p className="font-sans text-xs mt-1" style={{ color: "var(--color-brand)" }}>
-                  {errors.customerName}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <input
-                type="tel"
-                placeholder="Mobile Number"
-                value={mobileNumber}
-                onChange={(e) => setMobileNumber(e.target.value)}
-                onBlur={handleMobileBlur}
-                className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint px-4 py-2.5 rounded-sm outline-none focus:ring-1 focus:ring-border-md"
-                style={{ border: `1px solid ${errors.mobileNumber ? "var(--color-brand)" : "var(--color-border)"}` }}
-                aria-label="Mobile Number"
-              />
-              {errors.mobileNumber && (
-                <p className="font-sans text-xs mt-1" style={{ color: "var(--color-brand)" }}>
-                  {errors.mobileNumber}
-                </p>
-              )}
-            </div>
+            <ModeTab active={mode === "pickup"} onClick={() => handleModeChange("pickup")}>
+              Pickup
+            </ModeTab>
+            <ModeTab active={mode === "delivery"} onClick={() => handleModeChange("delivery")}>
+              Delivery
+            </ModeTab>
           </div>
-        </section>
 
-        {/* Collection / Delivery point */}
-        <section aria-label="Collection point">
-          <p
-            className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-            style={{ color: "var(--color-amber)" }}
-          >
-            {mode === "pickup" ? "Collect from" : "Deliver to"}
-          </p>
-          {mode === "pickup" ? (
-            <div
-              className="rounded-sm px-4 py-3"
-              style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
-            >
-              <p className="font-sans font-semibold text-sm text-dark">Ambica Food Corner</p>
-              <p className="font-sans text-sm text-muted">Shop No. 5, Main Market</p>
-              <p className="font-sans text-xs text-faint mt-0.5">~15 min ready time</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <div>
-                <input
-                  type="text"
-                  placeholder="Street address"
-                  value={streetAddress}
-                  onChange={(e) => setStreetAddress(e.target.value)}
-                  onBlur={handleStreetBlur}
-                  className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint px-4 py-2.5 rounded-sm outline-none focus:ring-1 focus:ring-border-md"
-                  style={{ border: `1px solid ${errors.streetAddress ? "var(--color-brand)" : "var(--color-border)"}` }}
-                  aria-label="Street address"
-                />
-                {errors.streetAddress && (
-                  <p className="font-sans text-xs mt-1" style={{ color: "var(--color-brand)" }}>
-                    {errors.streetAddress}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <input
-                  type="text"
-                  placeholder="City"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  onBlur={handleCityBlur}
-                  className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint px-4 py-2.5 rounded-sm outline-none focus:ring-1 focus:ring-border-md"
-                  style={{ border: `1px solid ${errors.city ? "var(--color-brand)" : "var(--color-border)"}` }}
-                  aria-label="City"
-                />
-                {errors.city && (
-                  <p className="font-sans text-xs mt-1" style={{ color: "var(--color-brand)" }}>
-                    {errors.city}
-                  </p>
-                )}
-              </div>
-
-            </div>
-          )}
-        </section>
-
-        {/* Order Notes */}
-        <section aria-label="Order Notes">
-          <p
-            className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-            style={{ color: "var(--color-amber)" }}
-          >
-            Order Notes (optional)
-          </p>
-          <textarea
-            placeholder="Any special instructions for the kitchen..."
-            value={orderNotes}
-            onChange={(e) => setOrderNotes(e.target.value)}
-            onBlur={handleNotesBlur}
-            className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint px-4 py-2.5 rounded-sm outline-none focus:ring-1 focus:ring-border-md resize-none"
-            style={{ border: "1px solid var(--color-border)", minHeight: "80px" }}
-            aria-label="Order Notes"
-          />
-        </section>
-
-        {/* Order summary */}
-        {items.length > 0 && (
-          <section aria-label="Order summary">
-            <p
-              className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-              style={{ color: "var(--color-amber)" }}
-            >
-              Order summary
+          {/* Customer details */}
+          <section aria-label="Customer details" className="flex flex-col gap-4">
+            <p className="font-mono text-xs uppercase tracking-[0.07em]" style={{ color: "var(--color-amber)" }}>
+              Customer details
             </p>
-            <div
-              className="rounded-sm px-4 py-3 flex flex-col gap-2"
-              style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
-            >
-              {items.map((item) => (
-                <div key={item.variantId} className="flex justify-between">
-                  <span className="font-sans text-sm text-dark">
-                    {item.quantity} × {item.productTitle}
-                  </span>
-                  <span className="font-mono text-sm text-dark">
-                    {formatPrice(item.price * item.quantity)}
-                  </span>
-                </div>
-              ))}
-              <div
-                className="flex justify-between pt-2 mt-1"
-                style={{ borderTop: "1px solid var(--color-border)" }}
-              >
-                <span className="font-sans text-sm text-muted">Service</span>
-                <span className="font-mono text-sm text-muted">
-                  {formatPrice(serviceTotal)}
-                </span>
-              </div>
-              <div className="flex justify-between font-semibold">
-                <span className="font-sans text-sm text-dark">Total</span>
-                <span className="font-mono text-sm text-dark">
-                  {formatPrice(orderTotal)}
-                </span>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <AuthField
+                label="Name"
+                type="text"
+                value={customerName}
+                onChange={setCustomerName}
+                onBlur={handleNameBlur}
+                placeholder="Your name"
+                icon={<UserIcon className="w-full h-full" />}
+                error={errors.customerName}
+                autoComplete="name"
+              />
+              <AuthField
+                label="Mobile number"
+                type="tel"
+                value={mobileNumber}
+                onChange={setMobileNumber}
+                onBlur={handleMobileBlur}
+                placeholder="Your mobile number"
+                icon={<PhoneIcon className="w-full h-full" />}
+                error={errors.mobileNumber}
+                autoComplete="tel"
+                inputMode="tel"
+                maxLength={10}
+              />
             </div>
           </section>
-        )}
 
-        {/* Place order */}
-        <div>
+          {/* Collection / Delivery point */}
+          <section aria-label="Collection point" className="flex flex-col gap-4">
+            <p className="font-mono text-xs uppercase tracking-[0.07em]" style={{ color: "var(--color-amber)" }}>
+              {mode === "pickup" ? "Collect from" : "Deliver to"}
+            </p>
+            {mode === "pickup" ? (
+              <div
+                className="flex items-start gap-3 rounded-md px-4 py-3.5"
+                style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
+              >
+                <MapPinIcon className="w-5 h-5 shrink-0 mt-0.5 text-brand" />
+                <div>
+                  <p className="font-sans font-semibold text-sm text-dark">Ambica Food Corner</p>
+                  <p className="font-sans text-sm text-muted">Shop No. 5, Main Market</p>
+                  <p className="font-sans text-xs text-faint mt-0.5">~15 min ready time</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <AuthField
+                    label="Street address"
+                    type="text"
+                    value={streetAddress}
+                    onChange={setStreetAddress}
+                    onBlur={handleStreetBlur}
+                    placeholder="Street address"
+                    icon={<MapPinIcon className="w-full h-full" />}
+                    error={errors.streetAddress}
+                    autoComplete="address-line1"
+                  />
+                </div>
+                <AuthField
+                  label="City"
+                  type="text"
+                  value={city}
+                  onChange={setCity}
+                  onBlur={handleCityBlur}
+                  placeholder="City"
+                  icon={<BuildingIcon className="w-full h-full" />}
+                  error={errors.city}
+                  autoComplete="address-level2"
+                />
+              </div>
+            )}
+          </section>
+
+          {/* Order Notes */}
+          <section aria-label="Order Notes" className="flex flex-col gap-2">
+            <p className="font-mono text-xs uppercase tracking-[0.07em]" style={{ color: "var(--color-amber)" }}>
+              Order notes (optional)
+            </p>
+            <textarea
+              placeholder="Any special instructions for the kitchen..."
+              value={orderNotes}
+              onChange={(e) => setOrderNotes(e.target.value)}
+              onBlur={handleNotesBlur}
+              className="w-full font-sans text-sm bg-input text-dark placeholder:text-faint px-4 py-3 rounded-md outline-none transition-colors focus:ring-2 focus:ring-offset-1 resize-none"
+              style={{
+                border: "1px solid var(--color-border)",
+                minHeight: "90px",
+                ["--tw-ring-color" as string]: "var(--color-brand)",
+                ["--tw-ring-offset-color" as string]: "var(--color-cream)",
+              }}
+              aria-label="Order Notes"
+            />
+          </section>
+
+          <div>
+            <Link
+              href="/cart"
+              className="font-mono text-xs uppercase tracking-[0.07em] text-muted hover:text-dark transition-colors"
+            >
+              ← Back to cart
+            </Link>
+          </div>
+        </div>
+
+        {/* Order summary card */}
+        <div
+          className="rounded-md p-5 sm:p-7 flex flex-col gap-5 order-1 lg:order-2 lg:sticky"
+          style={{ background: "var(--color-cream)", border: "1px solid var(--color-border)", top: "1.5rem" }}
+        >
+          <p className="font-mono text-xs uppercase tracking-[0.07em]" style={{ color: "var(--color-amber)" }}>
+            Order summary · {items.length} {items.length === 1 ? "item" : "items"}
+          </p>
+
+          <ul className="flex flex-col -my-2">
+            {items.map((item) => (
+              <CartItemRow key={item.variantId} item={item} />
+            ))}
+          </ul>
+
+          <div className="flex flex-col gap-2 pt-1" style={{ borderTop: "1px solid var(--color-border)" }}>
+            <div className="flex justify-between pt-3">
+              <span className="font-sans text-sm text-muted">Subtotal</span>
+              <span className="font-mono text-sm text-dark">{formatPrice(total || subtotal)}</span>
+            </div>
+            {mode === "delivery" && (
+              <div className="flex justify-between">
+                <span className="font-sans text-sm text-muted">Delivery charge</span>
+                <span className="font-mono text-sm text-dark">{formatPrice(deliveryCharge)}</span>
+              </div>
+            )}
+            <div
+              className="flex justify-between pt-2 mt-1 font-semibold"
+              style={{ borderTop: "1px solid var(--color-border)" }}
+            >
+              <span className="font-sans text-sm text-dark">Total</span>
+              <span className="font-mono text-sm text-dark">{formatPrice(orderTotal)}</span>
+            </div>
+          </div>
+
+          {orderError && (
+            <p role="alert" className="font-sans text-xs text-center" style={{ color: "var(--color-brand)" }}>
+              {orderError}
+            </p>
+          )}
+
           <button
             type="button"
             onClick={handlePlaceOrder}
-            className="block w-full text-center font-sans font-semibold text-sm text-cream py-3.5 rounded-sm transition-opacity hover:opacity-90 cursor-pointer"
+            disabled={isPlacingOrder}
+            className="group flex items-center justify-center gap-2 w-full font-sans font-semibold text-sm text-cream py-3.5 rounded-md transition-all duration-200 hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             style={{ background: "var(--color-brand)" }}
           >
-            Place order · {formatPrice(orderTotal)}
+            {isPlacingOrder ? (
+              <>
+                <SpinnerIcon className="w-4 h-4" />
+                Processing…
+              </>
+            ) : (
+              <>
+                Pay {formatPrice(orderTotal)}
+                <ArrowRightIcon className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </>
+            )}
           </button>
-          <p className="font-sans text-xs text-faint text-center mt-2">
-            You won&apos;t be charged until we start cooking.
-          </p>
-        </div>
 
-        <div className="text-center">
-          <Link
-            href="/cart"
-            className="font-mono text-xs uppercase tracking-[0.07em] text-muted hover:text-dark transition-colors"
-          >
-            ← Back to cart
-          </Link>
+          <p className="flex items-center justify-center gap-1.5 font-sans text-xs text-faint">
+            <LockIcon className="w-3.5 h-3.5" />
+            Payments secured by Razorpay
+          </p>
         </div>
       </div>
     </div>

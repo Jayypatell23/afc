@@ -4,6 +4,10 @@ import { sdk } from "@/lib/medusa"
 import ProductAddToOrder from "@/components/ProductAddToOrder"
 import { formatPrice } from "@/lib/format-price"
 
+// Product details rarely change; cache the rendered page and its data
+// fetches for 60s instead of hitting the backend on every request.
+export const revalidate = 60
+
 interface ProductVariant {
   id: string
   title: string

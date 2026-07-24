@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
+import { sdk } from "@/lib/medusa"
 
 const NAV_LINKS = [
   { label: "Menu", href: "/menu" },
@@ -116,6 +117,7 @@ function CartIcon() {
 
 function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false)
+  const [customer, setCustomer] = useState<{ name: string; email: string } | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const { clearCart } = useCart()
@@ -130,7 +132,22 @@ function ProfileDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const handleSignOut = () => {
+  useEffect(() => {
+    sdk.store.customer
+      .retrieve()
+      .then(({ customer: c }) => {
+        const name = [c.first_name, c.last_name].filter(Boolean).join(" ")
+        setCustomer({ name: name || c.email, email: c.email })
+      })
+      .catch((e) => console.error("Failed to load customer", e))
+  }, [])
+
+  const handleSignOut = async () => {
+    try {
+      await sdk.auth.logout()
+    } catch (e) {
+      console.error("Failed to end Medusa session", e)
+    }
     // Clear cart state and local storage
     clearCart()
     try {
@@ -157,8 +174,8 @@ function ProfileDropdown() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 bg-cream border border-[var(--color-border)] rounded-md shadow-[0_8px_30px_rgb(0,0,0,0.08)] py-2 z-50">
           <div className="px-4 py-3 border-b border-[var(--color-border)]">
-            <p className="font-sans text-sm font-medium text-dark">Demo User</p>
-            <p className="font-sans text-xs text-muted truncate mt-0.5">demo@example.com</p>
+            <p className="font-sans text-sm font-medium text-dark">{customer?.name ?? "…"}</p>
+            <p className="font-sans text-xs text-muted truncate mt-0.5">{customer?.email ?? ""}</p>
           </div>
           <div className="px-2 py-2">
             <button

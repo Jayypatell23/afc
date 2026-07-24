@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
         port: "9000",
         pathname: "/static/**",
       },
+      // Same, but for the deployed Render backend (production)
+      {
+        protocol: "https",
+        hostname: "foodorder-backend-q1hp.onrender.com",
+        pathname: "/static/**",
+      },
     ],
   },
 };

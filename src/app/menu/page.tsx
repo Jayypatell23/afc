@@ -1,6 +1,11 @@
 import { sdk } from "@/lib/medusa"
 import MenuSection from "@/components/MenuSection"
 
+// Menu rarely changes; cache the rendered page and its data fetches for
+// 60s instead of hitting the backend (and its price calculations) on
+// every request.
+export const revalidate = 60
+
 interface ProductVariant {
   id: string
   title: string
