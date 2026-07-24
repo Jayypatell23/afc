@@ -85,7 +85,7 @@ export default function OrderPreviewPage() {
         </p>
         <p className="font-sans text-xs text-muted leading-relaxed">
           Come to the counter when you&apos;re ready and we&apos;ll have your
-          food waiting. Look for our sign at Shop No. 5, Main Market.
+          food waiting. Look for our sign at Vaso Circle, Vaso, Gujarat 387380.
         </p>
       </div>
 

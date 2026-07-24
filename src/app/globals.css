@@ -20,6 +20,7 @@
   --font-sans: var(--font-hanken);
   --font-mono: var(--font-spline);
   --font-serif: var(--font-spectral);
+  --font-heading: var(--font-anton);
 }
 
 html {
@@ -79,6 +80,15 @@ body {
     opacity: 0.85;
     transform: scale(1.06);
   }
+}
+
+.afc-scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.afc-scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

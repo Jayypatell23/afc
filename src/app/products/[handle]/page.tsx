@@ -72,7 +72,7 @@ export default async function ProductPage({
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
       {/* Back link */}
       <Link
-        href="/"
+        href="/menu"
         className="inline-flex items-center gap-1 font-mono text-xs uppercase tracking-[0.07em] text-muted hover:text-dark transition-colors mb-6"
       >
         ← Menu

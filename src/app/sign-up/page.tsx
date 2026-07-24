@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { sdk } from "@/lib/medusa"
 import AuthShell from "@/components/auth/AuthShell"
 import AuthField from "@/components/auth/AuthField"
@@ -19,6 +19,14 @@ const EMAIL_PATTERN = /^\S+@\S+\.\S+$/
 const MOBILE_PATTERN = /^\d{10}$/
 
 export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpForm />
+    </Suspense>
+  )
+}
+
+function SignUpForm() {
   const [name, setName] = useState("")
   const [mobile, setMobile] = useState("")
   const [email, setEmail] = useState("")
@@ -27,6 +35,9 @@ export default function SignUpPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTarget = searchParams.get("redirect")
+  const destination = redirectTarget?.startsWith("/") ? redirectTarget : "/menu"
 
   const cleanMobile = mobile.replace(/\D/g, "")
   const nameValid = name.trim().length > 0
@@ -80,7 +91,7 @@ export default function SignUpPage() {
       await sdk.auth.login("customer", "emailpass", { email, password })
 
       document.cookie = "auth=1; path=/; max-age=2592000; SameSite=Lax"
-      router.push("/menu")
+      router.push(destination)
     } catch (err) {
       console.error("Sign up failed:", err)
       const message = err instanceof Error ? err.message : ""

@@ -23,7 +23,7 @@ export default function FindUsPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
       {/* Back */}
       <Link
-        href="/"
+        href="/menu"
         className="inline-flex items-center gap-1 font-mono text-xs uppercase tracking-[0.07em] text-muted hover:text-dark transition-colors mb-8"
       >
         ← Menu
@@ -53,7 +53,7 @@ export default function FindUsPage() {
             <address className="not-italic font-sans text-sm text-dark leading-relaxed">
               Ambica Food Corner
               <br />
-              Shop No. 5, Main Market
+              Vaso Circle, Vaso, Gujarat 387380
             </address>
             <p className="font-sans text-xs text-muted mt-2 leading-relaxed">
               Look for our sign at the entrance to the market — we&apos;re
@@ -102,10 +102,7 @@ export default function FindUsPage() {
                 <span className="text-faint mt-0.5">—</span>
                 <span>Easily accessible from the main road</span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="text-faint mt-0.5">—</span>
-                <span>Ample parking available near the market</span>
-              </li>
+              
               <li className="flex items-start gap-2">
                 <span className="text-faint mt-0.5">—</span>
                 <span>Local bus stop within 2 minutes&apos; walk</span>
@@ -153,7 +150,7 @@ export default function FindUsPage() {
                   </span>
                   <span
                     className="font-mono text-sm"
-                    style={{ color: isToday ? "var(--color-dark)" : "#6f6456" }}
+                    style={{ color: isToday ? "var(--color-dark)" : "var(--color-muted)" }}
                   >
                     {hours}
                   </span>

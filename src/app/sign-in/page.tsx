@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { sdk } from "@/lib/medusa"
 import AuthShell from "@/components/auth/AuthShell"
 import AuthField from "@/components/auth/AuthField"
@@ -11,11 +11,24 @@ import { LockIcon, MailIcon, SpinnerIcon, ArrowRightIcon } from "@/components/au
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/
 
 export default function SignInPage() {
+  return (
+    <Suspense>
+      <SignInForm />
+    </Suspense>
+  )
+}
+
+function SignInForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  // Only ever follow a same-site path (guards against an open-redirect via a
+  // crafted ?redirect= value pointing at an external URL).
+  const redirectTarget = searchParams.get("redirect")
+  const destination = redirectTarget?.startsWith("/") ? redirectTarget : "/menu"
 
   const emailValid = EMAIL_PATTERN.test(email)
   const passwordValid = password.length >= 8
@@ -45,7 +58,7 @@ export default function SignInPage() {
       }
 
       document.cookie = "auth=1; path=/; max-age=2592000; SameSite=Lax"
-      router.push("/menu")
+      router.push(destination)
     } catch (err) {
       console.error("Sign in failed:", err)
       setError("Incorrect email or password.")

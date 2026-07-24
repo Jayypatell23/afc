@@ -6,13 +6,10 @@ import CartItem from "@/components/CartItem"
 import { formatPrice } from "@/lib/format-price"
 import EmptyState from "@/components/EmptyState"
 
-const SERVICE_FEE = 0.5
-
 export default function CartPage() {
   const { items, total, subtotal, isLoaded } = useCart()
 
-  const serviceTotal = items.length > 0 ? SERVICE_FEE : 0
-  const orderTotal = (total || subtotal) + serviceTotal
+  const orderTotal = total || subtotal
 
   if (!isLoaded) {
     return (
@@ -37,7 +34,7 @@ export default function CartPage() {
           description="Add something delicious from the menu."
           action={
             <Link
-              href="/"
+              href="/menu"
               className="inline-block font-mono text-xs uppercase tracking-[0.07em] text-brand hover:underline"
             >
               Browse the menu →
@@ -46,7 +43,7 @@ export default function CartPage() {
         />
       ) : (
         <>
-          <ul className="mb-6">
+          <ul className="flex flex-col gap-3 mb-6 pt-2">
             {items.map((item) => (
               <CartItem key={item.variantId} item={item} />
             ))}
@@ -60,10 +57,6 @@ export default function CartPage() {
             <div className="flex justify-between">
               <span className="font-sans text-sm text-muted">Subtotal</span>
               <span className="font-mono text-sm text-dark">{formatPrice(subtotal)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-sans text-sm text-muted">Service</span>
-              <span className="font-mono text-sm text-dark">{formatPrice(serviceTotal)}</span>
             </div>
             <div
               className="flex justify-between pt-3 mt-1"

@@ -14,8 +14,8 @@ export default function CartItem({ item }: CartItemProps) {
 
   return (
     <li
-      className="flex items-start gap-4 py-4"
-      style={{ borderBottom: "1px solid var(--color-border)" }}
+      className="relative flex items-start gap-3.5 rounded-md p-3"
+      style={{ background: "var(--color-input)", border: "1px solid var(--color-border)" }}
     >
       {item.thumbnail && (
         // Plain img avoids next/image blocking private-IP hosts like localhost:9000
@@ -23,16 +23,16 @@ export default function CartItem({ item }: CartItemProps) {
         <img
           src={item.thumbnail}
           alt={item.productTitle}
-          width={52}
-          height={52}
-          className="rounded-sm object-cover shrink-0"
+          width={64}
+          height={64}
+          className="rounded-md object-cover shrink-0"
           style={{ background: "var(--color-card)" }}
           loading="lazy"
         />
       )}
 
       <div className="flex-1 min-w-0">
-        <p className="font-sans font-semibold text-sm text-dark leading-snug">
+        <p className="font-sans font-semibold text-sm text-dark leading-snug pr-5">
           {item.productTitle}
         </p>
         {item.variantTitle && item.variantTitle !== "Default Variant" && (
@@ -57,7 +57,8 @@ export default function CartItem({ item }: CartItemProps) {
       <button
         type="button"
         onClick={() => removeItem(item.variantId)}
-        className="font-sans text-xs text-muted hover:text-brand transition-colors shrink-0 mt-0.5"
+        className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 rounded-full text-cream shadow-[0_2px_6px_rgba(46,42,38,0.3)] hover:opacity-90 transition-opacity"
+        style={{ background: "var(--color-dark)", fontSize: 11, lineHeight: 1 }}
         aria-label={`Remove ${item.productTitle}`}
       >
         ✕

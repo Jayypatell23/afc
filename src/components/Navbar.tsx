@@ -7,6 +7,7 @@ import { useCart } from "@/lib/cart-context"
 import { sdk } from "@/lib/medusa"
 
 const NAV_LINKS = [
+  { label: "Home", href: "/" },
   { label: "Menu", href: "/menu" },
   { label: "Find us", href: "/find-us" },
   { label: "About", href: "/about" },
@@ -31,36 +32,17 @@ export default function Navbar() {
       className="sticky top-0 z-40 bg-cream border-b border-border"
       aria-label="Main navigation"
     >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <span
-            className="inline-block rounded-sm bg-brand"
-            style={{ width: 10, height: 10 }}
-            aria-hidden="true"
-          />
-          <span
-            className="font-serif font-semibold text-dark leading-none"
-            style={{ fontSize: 26 }}
-          >
-            Ambica
-          </span>
-        </Link>
-
-        {/* Desktop center links */}
-        <div className="hidden md:flex items-center gap-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        {/* Desktop left links */}
+        <div className="hidden md:flex items-center gap-7 flex-1">
           {NAV_LINKS.map(({ label, href }) => {
             const isActive = pathname === href
             return (
               <Link
                 key={href}
                 href={href}
-                className="font-sans text-sm font-medium transition-colors"
-                style={{
-                  color: isActive ? "var(--color-dark)" : "var(--color-faint)",
-                  borderBottom: isActive ? "2px solid var(--color-dark)" : "2px solid transparent",
-                  paddingBottom: 2,
-                }}
+                className="font-mono text-xs font-semibold uppercase tracking-[0.06em] transition-colors"
+                style={{ color: isActive ? "var(--color-brand)" : "var(--color-dark)" }}
               >
                 {label}
               </Link>
@@ -68,14 +50,26 @@ export default function Navbar() {
           })}
         </div>
 
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          <span
+            className="font-heading uppercase text-dark leading-none text-center"
+            style={{ fontSize: 20, letterSpacing: "0.01em" }}
+          >
+            Ambica
+            <br />
+            <span style={{ color: "var(--color-brand)" }}>Food Corner</span>
+          </span>
+        </Link>
+
         {/* Right side */}
-        <div className="flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-4 flex-1 justify-end">
           {isAuthenticated ? (
             <ProfileDropdown />
           ) : (
             <Link
               href="/sign-in"
-              className="hidden md:inline-flex font-sans text-sm font-medium text-muted hover:text-dark transition-colors"
+              className="font-sans text-sm font-medium text-muted hover:text-dark transition-colors"
             >
               Sign in
             </Link>
@@ -89,7 +83,16 @@ export default function Navbar() {
               ({itemCount})
             </span>
           </Link>
+          <Link
+            href="/menu"
+            className="font-sans font-semibold text-xs uppercase tracking-[0.04em] text-cream px-5 py-2.5 rounded-full transition-transform active:scale-95 hover:opacity-90"
+            style={{ background: "var(--color-brand)" }}
+          >
+            Order now
+          </Link>
         </div>
+
+        {/* Mobile — logo only handled above; menu access lives in MobileTabBar */}
       </div>
     </nav>
   )
@@ -165,7 +168,7 @@ function ProfileDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-8 h-8 rounded-full bg-[#f7f4ed] border border-[var(--color-border)] text-dark hover:bg-[var(--color-card)] transition-colors"
+        className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--color-card)] border border-[var(--color-border)] text-dark hover:bg-[var(--color-card)] transition-colors"
         aria-label="Profile"
       >
         <UserIcon />
@@ -180,7 +183,7 @@ function ProfileDropdown() {
           <div className="px-2 py-2">
             <button
               onClick={handleSignOut}
-              className="w-full text-left px-2 py-1.5 font-sans text-sm font-medium text-[var(--color-brand)] hover:bg-[#f7f4ed] rounded-sm transition-colors"
+              className="w-full text-left px-2 py-1.5 font-sans text-sm font-medium text-[var(--color-brand)] hover:bg-[var(--color-card)] rounded-sm transition-colors"
             >
               Sign out
             </button>

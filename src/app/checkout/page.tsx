@@ -118,8 +118,12 @@ export default function CheckoutPage() {
     sdk.store.fulfillment
       .listCartOptions({ cart_id: cart.id })
       .then(({ shipping_options }) => {
-        const pickup = shipping_options?.find((o: any) => o.name === SHIPPING_OPTION_NAMES.pickup)
-        const delivery = shipping_options?.find((o: any) => o.name === SHIPPING_OPTION_NAMES.delivery)
+        const pickup = shipping_options?.find(
+          (o: { name: string }) => o.name === SHIPPING_OPTION_NAMES.pickup
+        )
+        const delivery = shipping_options?.find(
+          (o: { name: string }) => o.name === SHIPPING_OPTION_NAMES.delivery
+        )
         setShippingOptions({
           pickup: pickup && { id: pickup.id, name: pickup.name, amount: pickup.amount ?? 0 },
           delivery: delivery && { id: delivery.id, name: delivery.name, amount: delivery.amount ?? 0 },
@@ -254,7 +258,8 @@ export default function CheckoutPage() {
         try {
           const { addresses } = await sdk.store.customer.listAddress()
           const alreadySaved = addresses.some(
-            (a: any) => a.address_1 === streetAddress && a.city === city
+            (a: { address_1?: string; city?: string }) =>
+              a.address_1 === streetAddress && a.city === city
           )
           if (!alreadySaved) {
             await sdk.store.customer.createAddress({
@@ -285,7 +290,7 @@ export default function CheckoutPage() {
         { provider_id: RAZORPAY_PROVIDER_ID }
       )
       const paymentSession = payment_collection.payment_sessions?.find(
-        (s: any) => s.provider_id === RAZORPAY_PROVIDER_ID
+        (s: { provider_id: string }) => s.provider_id === RAZORPAY_PROVIDER_ID
       )
       const sessionData = paymentSession?.data as
         | { razorpay_order_id?: string; amount?: number; key_id?: string }
@@ -384,8 +389,12 @@ export default function CheckoutPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 lg:gap-10 items-start">
         {/* Delivery details card */}
         <div
-          className="rounded-md p-5 sm:p-7 flex flex-col gap-7 order-2 lg:order-1"
-          style={{ background: "var(--color-cream)", border: "1px solid var(--color-border)" }}
+          className="rounded-lg p-5 sm:p-7 flex flex-col gap-7 order-2 lg:order-1"
+          style={{
+            background: "var(--color-input)",
+            border: "1px solid var(--color-border)",
+            boxShadow: "0 1px 3px rgba(46,42,38,0.06)",
+          }}
         >
           {/* Mode toggle */}
           <div
@@ -448,7 +457,7 @@ export default function CheckoutPage() {
                 <MapPinIcon className="w-5 h-5 shrink-0 mt-0.5 text-brand" />
                 <div>
                   <p className="font-sans font-semibold text-sm text-dark">Ambica Food Corner</p>
-                  <p className="font-sans text-sm text-muted">Shop No. 5, Main Market</p>
+                  <p className="font-sans text-sm text-muted">Vaso Circle, Vaso, Gujarat 387380</p>
                   <p className="font-sans text-xs text-faint mt-0.5">~15 min ready time</p>
                 </div>
               </div>
@@ -515,14 +524,19 @@ export default function CheckoutPage() {
 
         {/* Order summary card */}
         <div
-          className="rounded-md p-5 sm:p-7 flex flex-col gap-5 order-1 lg:order-2 lg:sticky"
-          style={{ background: "var(--color-cream)", border: "1px solid var(--color-border)", top: "1.5rem" }}
+          className="rounded-lg p-5 sm:p-7 flex flex-col gap-5 order-1 lg:order-2 lg:sticky"
+          style={{
+            background: "var(--color-input)",
+            border: "1px solid var(--color-border)",
+            boxShadow: "0 4px 20px rgba(46,42,38,0.08)",
+            top: "1.5rem",
+          }}
         >
           <p className="font-mono text-xs uppercase tracking-[0.07em]" style={{ color: "var(--color-amber)" }}>
             Order summary · {items.length} {items.length === 1 ? "item" : "items"}
           </p>
 
-          <ul className="flex flex-col -my-2">
+          <ul className="flex flex-col gap-3 pt-2">
             {items.map((item) => (
               <CartItemRow key={item.variantId} item={item} />
             ))}
