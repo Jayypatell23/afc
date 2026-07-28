@@ -42,6 +42,7 @@ export interface MedusaCart {
   items?: MedusaCartItem[]
   total?: number
   subtotal?: number
+  shipping_total?: number
   metadata?: Record<string, unknown> | null
 }
 
