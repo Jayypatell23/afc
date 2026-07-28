@@ -18,11 +18,13 @@ export default function AuthShell({
   activeTab,
   title,
   subtitle,
+  redirect,
   children,
 }: {
   activeTab: AuthTab
   title: string
   subtitle: string
+  redirect?: string | null
   children: React.ReactNode
 }) {
   return (
@@ -60,10 +62,11 @@ export default function AuthShell({
           >
             {TABS.map((tab) => {
               const isActive = tab.id === activeTab
+              const href = redirect ? `${tab.href}?redirect=${encodeURIComponent(redirect)}` : tab.href
               return (
                 <Link
                   key={tab.id}
-                  href={tab.href}
+                  href={href}
                   role="tab"
                   aria-selected={isActive}
                   className="font-mono text-xs uppercase tracking-[0.06em] px-4 py-2 rounded-sm transition-all duration-200"

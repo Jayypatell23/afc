@@ -1,6 +1,15 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
 
 export default function Footer() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    setIsAuthenticated(document.cookie.includes("auth=1"))
+  }, [])
+
   return (
     <footer
       className="mt-auto"
@@ -27,7 +36,9 @@ export default function Footer() {
                 { href: "/menu", label: "Menu" },
                 { href: "/find-us", label: "Find us" },
                 { href: "/about", label: "About" },
-                { href: "/sign-in", label: "Sign in" },
+                isAuthenticated
+                  ? { href: "/profile", label: "Account" }
+                  : { href: "/sign-in", label: "Sign in" },
               ].map(({ href, label }) => (
                 <li key={href}>
                   <Link
@@ -48,7 +59,7 @@ export default function Footer() {
         </div>
 
         <p className="font-sans text-xs text-faint mt-6 max-w-sm leading-relaxed">
-          Ambica Food Corner &middot; Open Mon–Sat 11–9, Sun 12–6 &middot;
+          Ambica Food Corner &middot; Open Daily 5 PM – 2 AM &middot;
           Pickup &amp; local delivery
         </p>
       </div>
