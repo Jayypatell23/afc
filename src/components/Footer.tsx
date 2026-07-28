@@ -7,7 +7,10 @@ export default function Footer() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    setIsAuthenticated(document.cookie.includes("auth=1"))
+    const hasAuth = document.cookie.includes("auth=1")
+    setTimeout(() => {
+      setIsAuthenticated(hasAuth)
+    }, 0)
   }, [])
 
   return (

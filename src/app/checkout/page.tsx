@@ -133,6 +133,13 @@ export default function CheckoutPage() {
       .catch((e) => console.error("Failed to load shipping options", e))
   }, [cart?.id])
 
+  const persistMetadata = async (updates: Record<string, unknown>) => {
+    if (!cart) return
+    const currentMetadata = (cart.metadata as Record<string, unknown>) || {}
+    const newMetadata = { ...currentMetadata, ...updates }
+    await updateCart({ metadata: newMetadata })
+  }
+
   // Restore state from Medusa cart metadata on load
   useEffect(() => {
     if (isLoaded && !hasInitialized) {
@@ -182,13 +189,6 @@ export default function CheckoutPage() {
         // Not signed in or failed to retrieve is expected, ignore
       })
   }, [hasInitialized])
-
-  const persistMetadata = async (updates: Record<string, unknown>) => {
-    if (!cart) return
-    const currentMetadata = (cart.metadata as Record<string, unknown>) || {}
-    const newMetadata = { ...currentMetadata, ...updates }
-    await updateCart({ metadata: newMetadata })
-  }
 
   const handleModeChange = async (newMode: DeliveryMode) => {
     setMode(newMode)
