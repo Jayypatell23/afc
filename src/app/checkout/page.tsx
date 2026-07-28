@@ -388,7 +388,9 @@ export default function CheckoutPage() {
   // on the store.
   const deliveryOptionLoaded = shippingOptions.delivery !== undefined
   const deliveryCharge = mode === "delivery" ? shippingOptions.delivery?.amount ?? 0 : 0
-  const orderTotal = (total || subtotal) + deliveryCharge
+  const backendShippingTotal = cart?.shipping_total ?? 0
+  const baseTotal = (total || subtotal) - backendShippingTotal
+  const orderTotal = baseTotal + deliveryCharge
 
   if (!isLoaded) {
     return (
@@ -581,7 +583,7 @@ export default function CheckoutPage() {
           <div className="flex flex-col gap-2 pt-1" style={{ borderTop: "1px solid var(--color-border)" }}>
             <div className="flex justify-between pt-3">
               <span className="font-sans text-sm text-muted">Subtotal</span>
-              <span className="font-mono text-sm text-dark">{formatPrice(total || subtotal)}</span>
+              <span className="font-mono text-sm text-dark">{formatPrice(baseTotal)}</span>
             </div>
             {mode === "delivery" && (
               <div className="flex justify-between">
