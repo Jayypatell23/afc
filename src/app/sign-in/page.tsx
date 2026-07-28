@@ -19,16 +19,19 @@ export default function SignInPage() {
 }
 
 function SignInForm() {
-  const [email, setEmail] = useState("")
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialEmail = searchParams.get("email") || ""
+
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const router = useRouter()
-  const searchParams = useSearchParams()
   // Only ever follow a same-site path (guards against an open-redirect via a
   // crafted ?redirect= value pointing at an external URL).
   const redirectTarget = searchParams.get("redirect")
   const destination = redirectTarget?.startsWith("/") ? redirectTarget : "/menu"
+  const isCheckout = redirectTarget === "/checkout" || redirectTarget?.startsWith("/checkout")
 
   const emailValid = EMAIL_PATTERN.test(email)
   const passwordValid = password.length >= 8
@@ -50,6 +53,22 @@ function SignInForm() {
     setIsSubmitting(true)
 
     try {
+      // Check if the customer email exists in the database
+      const checkResult = await sdk.client.fetch<{ exists: boolean }>(
+        "/store/customers/check-email",
+        { query: { email } }
+      ).catch((err) => {
+        console.error("Failed to check if email exists:", err)
+        return { exists: true } // Fallback to regular login flow on check failure
+      })
+
+      if (!checkResult.exists) {
+        // User does not exist, redirect to the sign-up page with email pre-filled
+        const signUpUrl = `/sign-up?redirect=${encodeURIComponent(redirectTarget || "")}&email=${encodeURIComponent(email)}&notFound=1`
+        router.push(signUpUrl)
+        return
+      }
+
       const result = await sdk.auth.login("customer", "emailpass", { email, password })
 
       if (typeof result !== "string") {
@@ -61,7 +80,7 @@ function SignInForm() {
       router.push(destination)
     } catch (err) {
       console.error("Sign in failed:", err)
-      setError("Incorrect email or password.")
+      setError("Incorrect password. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -70,9 +89,20 @@ function SignInForm() {
   return (
     <AuthShell
       activeTab="sign-in"
-      title="Welcome back"
-      subtitle="Sign in to pick up where you left off."
+      title={isCheckout ? "Sign in to check out" : "Welcome back"}
+      subtitle={isCheckout ? "Sign in to retrieve your details and place your order." : "Sign in to pick up where you left off."}
+      redirect={redirectTarget}
     >
+      {isCheckout && (
+        <div className="mb-6 p-4 rounded-md text-xs font-sans border flex items-center gap-3 bg-card border-brand/20 text-dark">
+          <span className="text-lg">🛒</span>
+          <div>
+            <p className="font-semibold">Checkout requires an account</p>
+            <p className="text-muted mt-0.5">Please sign in or create an account below to complete your order.</p>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
         <AuthField
           label="Email"
@@ -125,7 +155,10 @@ function SignInForm() {
 
       <p className="font-sans text-sm text-muted text-center mt-8">
         New here?{" "}
-        <Link href="/sign-up" className="text-dark font-medium hover:text-brand transition-colors">
+        <Link
+          href={redirectTarget ? `/sign-up?redirect=${encodeURIComponent(redirectTarget)}&email=${encodeURIComponent(email)}` : `/sign-up?email=${encodeURIComponent(email)}`}
+          className="text-dark font-medium hover:text-brand transition-colors"
+        >
           Create an account
         </Link>
       </p>

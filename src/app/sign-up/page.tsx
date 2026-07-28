@@ -27,17 +27,21 @@ export default function SignUpPage() {
 }
 
 function SignUpForm() {
-  const [name, setName] = useState("")
-  const [mobile, setMobile] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTarget = searchParams.get("redirect")
   const destination = redirectTarget?.startsWith("/") ? redirectTarget : "/menu"
+  const isCheckout = redirectTarget === "/checkout" || redirectTarget?.startsWith("/checkout")
+
+  const initialEmail = searchParams.get("email") || ""
+  const wasNotFound = searchParams.get("notFound") === "1"
+
+  const [name, setName] = useState("")
+  const [mobile, setMobile] = useState("")
+  const [email, setEmail] = useState(initialEmail)
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const cleanMobile = mobile.replace(/\D/g, "")
   const nameValid = name.trim().length > 0
@@ -108,9 +112,28 @@ function SignUpForm() {
   return (
     <AuthShell
       activeTab="sign-up"
-      title="Create your account"
-      subtitle="Order ahead, save your details, and pick up in minutes."
+      title={isCheckout ? "Create an account" : "Create your account"}
+      subtitle={isCheckout ? "Create an account to complete your checkout and track your order." : "Order ahead, save your details, and pick up in minutes."}
+      redirect={redirectTarget}
     >
+      {wasNotFound ? (
+        <div className="mb-6 p-4 rounded-md text-xs font-sans border flex items-center gap-3 bg-card border-brand/20 text-dark">
+
+          <div>
+            <p className="font-semibold">Account not found</p>
+            <p className="text-muted mt-0.5">We couldn&apos;t find an account for <strong>{email}</strong>. Let&apos;s create one below to complete your order.</p>
+          </div>
+        </div>
+      ) : isCheckout ? (
+        <div className="mb-6 p-4 rounded-md text-xs font-sans border flex items-center gap-3 bg-card border-brand/20 text-dark">
+          <span className="text-lg">🛒</span>
+          <div>
+            <p className="font-semibold">Checkout requires an account</p>
+            <p className="text-muted mt-0.5">Please create an account or sign in below to complete your order.</p>
+          </div>
+        </div>
+      ) : null}
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
         <AuthField
           label="Name"
@@ -187,7 +210,10 @@ function SignUpForm() {
 
       <p className="font-sans text-sm text-muted text-center mt-8">
         Already have an account?{" "}
-        <Link href="/sign-in" className="text-dark font-medium hover:text-brand transition-colors">
+        <Link
+          href={redirectTarget ? `/sign-in?redirect=${encodeURIComponent(redirectTarget)}&email=${encodeURIComponent(email)}` : `/sign-in?email=${encodeURIComponent(email)}`}
+          className="text-dark font-medium hover:text-brand transition-colors"
+        >
           Sign in
         </Link>
       </p>

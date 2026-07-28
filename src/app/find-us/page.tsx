@@ -7,13 +7,13 @@ export const metadata: Metadata = {
 }
 
 const HOURS = [
-  { day: "Monday", hours: "11:00 – 21:00" },
-  { day: "Tuesday", hours: "11:00 – 21:00" },
-  { day: "Wednesday", hours: "11:00 – 21:00" },
-  { day: "Thursday", hours: "11:00 – 21:00" },
-  { day: "Friday", hours: "11:00 – 22:00" },
-  { day: "Saturday", hours: "10:00 – 22:00" },
-  { day: "Sunday", hours: "12:00 – 18:00" },
+  { day: "Monday", hours: "17:00 – 02:00" },
+  { day: "Tuesday", hours: "17:00 – 02:00" },
+  { day: "Wednesday", hours: "17:00 – 02:00" },
+  { day: "Thursday", hours: "17:00 – 02:00" },
+  { day: "Friday", hours: "17:00 – 02:00" },
+  { day: "Saturday", hours: "17:00 – 02:00" },
+  { day: "Sunday", hours: "17:00 – 02:00" },
 ]
 
 const TODAY = new Date().toLocaleDateString("en-GB", { weekday: "long" })
@@ -57,36 +57,25 @@ export default function FindUsPage() {
             </address>
             <p className="font-sans text-xs text-muted mt-2 leading-relaxed">
               Look for our sign at the entrance to the market — we&apos;re
-              open six days a week with fresh food every day.
+              open daily with fresh food every day.
             </p>
           </div>
 
-          {/* Map placeholder */}
+          {/* Google Map */}
           <div
-            className="w-full rounded-sm flex items-center justify-center"
-            style={{ height: 200, background: "var(--color-card)", border: "1px solid var(--color-border)" }}
-            aria-label="Map of Ambica Food Corner location"
+            className="w-full rounded-sm overflow-hidden shadow-sm border"
+            style={{ height: 250, borderColor: "var(--color-border)" }}
           >
-            <div className="text-center">
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="mx-auto mb-2"
-                aria-hidden="true"
-              >
-                <path
-                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                  fill="var(--color-brand)"
-                  opacity="0.5"
-                />
-                <circle cx="12" cy="9" r="2.5" fill="var(--color-brand)" />
-              </svg>
-              <p className="font-mono text-xs text-muted uppercase tracking-[0.07em]">
-                Ambica Food Corner
-              </p>
-            </div>
+            <iframe
+              title="Ambica Food Corner Google Maps Location"
+              src="https://maps.google.com/maps?q=Ambica%20Food%20Corner,%20Vaso,%20Gujarat%20387380&t=&z=16&ie=UTF8&iwloc=&output=embed"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
           </div>
 
           {/* Getting here */}

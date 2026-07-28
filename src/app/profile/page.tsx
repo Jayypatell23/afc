@@ -38,7 +38,11 @@ export default function ProfilePage() {
       })
 
     sdk.store.order
-      .list({ limit: 10, fields: "id,display_id,status,fulfillment_status,created_at,total,*items" })
+      .list({
+        limit: 10,
+        order: "-created_at",
+        fields: "id,display_id,status,fulfillment_status,created_at,total,*items",
+      })
       .then(({ orders }) => setOrders(orders as unknown as OrderSummary[]))
       .catch((e) => {
         console.error("Failed to load orders", e)
@@ -158,13 +162,15 @@ export default function ProfilePage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <Link
-          href="/orders/preview"
-          className="font-sans text-sm font-medium text-dark py-2.5 px-5 rounded-sm transition-colors hover:bg-card text-center"
-          style={{ border: "1px solid var(--color-border-md)" }}
-        >
-          Track your last order
-        </Link>
+        {orders && orders.length > 0 && (
+          <Link
+            href={`/orders/${orders[0].id}`}
+            className="font-sans text-sm font-medium text-dark py-2.5 px-5 rounded-sm transition-colors hover:bg-card text-center"
+            style={{ border: "1px solid var(--color-border-md)" }}
+          >
+            Track your last order
+          </Link>
+        )}
         <button
           type="button"
           onClick={handleSignOut}

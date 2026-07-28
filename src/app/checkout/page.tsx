@@ -104,6 +104,7 @@ export default function CheckoutPage() {
     city?: string
   }>({})
 
+  const [authenticatedEmail, setAuthenticatedEmail] = useState<string | null>(null)
   const [hasInitialized, setHasInitialized] = useState(false)
   const [shippingOptions, setShippingOptions] = useState<Record<DeliveryMode, ShippingOption | undefined>>({
     pickup: undefined,
@@ -132,6 +133,13 @@ export default function CheckoutPage() {
       .catch((e) => console.error("Failed to load shipping options", e))
   }, [cart?.id])
 
+  const persistMetadata = async (updates: Record<string, unknown>) => {
+    if (!cart) return
+    const currentMetadata = (cart.metadata as Record<string, unknown>) || {}
+    const newMetadata = { ...currentMetadata, ...updates }
+    await updateCart({ metadata: newMetadata })
+  }
+
   // Restore state from Medusa cart metadata on load
   useEffect(() => {
     if (isLoaded && !hasInitialized) {
@@ -154,12 +162,33 @@ export default function CheckoutPage() {
     }
   }, [isLoaded, cart, hasInitialized])
 
-  const persistMetadata = async (updates: Record<string, unknown>) => {
-    if (!cart) return
-    const currentMetadata = (cart.metadata as Record<string, unknown>) || {}
-    const newMetadata = { ...currentMetadata, ...updates }
-    await updateCart({ metadata: newMetadata })
-  }
+  // Fetch the logged-in customer's profile if available to pre-fill Name and
+  // Mobile, and to remember their real email so it doesn't get overwritten
+  // by the guest placeholder below.
+  useEffect(() => {
+    if (!hasInitialized) return
+    sdk.store.customer
+      .retrieve()
+      .then(({ customer: c }) => {
+        if (c) {
+          const name = [c.first_name, c.last_name].filter(Boolean).join(" ")
+          if (name && !customerName) {
+            setCustomerName(name)
+            persistMetadata({ customerName: name })
+          }
+          if (c.phone && !mobileNumber) {
+            setMobileNumber(c.phone)
+            persistMetadata({ mobileNumber: c.phone })
+          }
+          if (c.email) {
+            setAuthenticatedEmail(c.email)
+          }
+        }
+      })
+      .catch((e) => {
+        // Not signed in or failed to retrieve is expected, ignore
+      })
+  }, [hasInitialized])
 
   const handleModeChange = async (newMode: DeliveryMode) => {
     setMode(newMode)
@@ -240,7 +269,10 @@ export default function CheckoutPage() {
       })
 
       await sdk.store.cart.update(cart.id, {
-        email: `${cleanMobile}@guest.afcorner.local`,
+        // Signed-in customers already have a real email on their cart —
+        // don't clobber it with the phone-based placeholder used for guest
+        // checkout, or their orders end up showing a fake address instead.
+        ...(authenticatedEmail ? {} : { email: `${cleanMobile}@guest.afcorner.local` }),
         shipping_address: {
           first_name: customerName,
           address_1: mode === "delivery" ? streetAddress : "Ambica Food Corner, Shop No. 5",
@@ -351,7 +383,11 @@ export default function CheckoutPage() {
     }
   }
 
-  const deliveryCharge = mode === "delivery" ? shippingOptions.delivery?.amount ?? 40 : 0
+  // Only trust a real fetched amount — a guessed fallback could show (and
+  // charge) a different price than the shipping option actually configured
+  // on the store.
+  const deliveryOptionLoaded = shippingOptions.delivery !== undefined
+  const deliveryCharge = mode === "delivery" ? shippingOptions.delivery?.amount ?? 0 : 0
   const orderTotal = (total || subtotal) + deliveryCharge
 
   if (!isLoaded) {
@@ -550,7 +586,9 @@ export default function CheckoutPage() {
             {mode === "delivery" && (
               <div className="flex justify-between">
                 <span className="font-sans text-sm text-muted">Delivery charge</span>
-                <span className="font-mono text-sm text-dark">{formatPrice(deliveryCharge)}</span>
+                <span className="font-mono text-sm text-dark">
+                  {deliveryOptionLoaded ? formatPrice(deliveryCharge) : "Calculating…"}
+                </span>
               </div>
             )}
             <div
@@ -571,7 +609,7 @@ export default function CheckoutPage() {
           <button
             type="button"
             onClick={handlePlaceOrder}
-            disabled={isPlacingOrder}
+            disabled={isPlacingOrder || (mode === "delivery" && !deliveryOptionLoaded)}
             className="group flex items-center justify-center gap-2 w-full font-sans font-semibold text-sm text-cream py-3.5 rounded-md transition-all duration-200 hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             style={{ background: "var(--color-brand)" }}
           >
