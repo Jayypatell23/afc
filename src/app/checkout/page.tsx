@@ -84,7 +84,7 @@ function ModeTab({
 }
 
 export default function CheckoutPage() {
-  const { items, total, subtotal, resetCartState, isLoaded, cart, updateCart } = useCart()
+  const { items, subtotal, resetCartState, isLoaded, cart, updateCart } = useCart()
   const router = useRouter()
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
@@ -581,7 +581,7 @@ export default function CheckoutPage() {
           <div className="flex flex-col gap-2 pt-1" style={{ borderTop: "1px solid var(--color-border)" }}>
             <div className="flex justify-between pt-3">
               <span className="font-sans text-sm text-muted">Subtotal</span>
-              <span className="font-mono text-sm text-dark">{formatPrice(total || subtotal)}</span>
+              <span className="font-mono text-sm text-dark">{formatPrice(subtotal)}</span>
             </div>
             {mode === "delivery" && (
               <div className="flex justify-between">

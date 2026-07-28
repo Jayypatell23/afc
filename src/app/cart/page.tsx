@@ -7,9 +7,9 @@ import { formatPrice } from "@/lib/format-price"
 import EmptyState from "@/components/EmptyState"
 
 export default function CartPage() {
-  const { items, total, subtotal, isLoaded } = useCart()
+  const { items, subtotal, isLoaded } = useCart()
 
-  const orderTotal = total || subtotal
+  const orderTotal = subtotal
 
   if (!isLoaded) {
     return (
