@@ -5,49 +5,36 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { sdk } from "@/lib/medusa"
 import { useCart } from "@/lib/cart-context"
-import { formatPrice } from "@/lib/format-price"
-
-interface OrderSummary {
-  id: string
-  display_id?: number
-  status: string
-  fulfillment_status?: string
-  created_at: string
-  total?: number
-  items?: { id: string }[]
-}
 
 export default function ProfilePage() {
   const router = useRouter()
   const { clearCart } = useCart()
   const [customer, setCustomer] = useState<{ name: string; email: string } | null>(null)
   const [customerLoadFailed, setCustomerLoadFailed] = useState(false)
-  const [orders, setOrders] = useState<OrderSummary[] | null>(null)
   const [isSigningOut, setIsSigningOut] = useState(false)
 
   useEffect(() => {
-    sdk.store.customer
-      .retrieve()
-      .then(({ customer: c }) => {
-        const name = [c.first_name, c.last_name].filter(Boolean).join(" ")
-        setCustomer({ name: name || c.email, email: c.email })
-      })
-      .catch((e) => {
-        console.error("Failed to load customer", e)
-        setCustomerLoadFailed(true)
-      })
+    const getCookie = (name: string) => {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]*)'))
+      return match ? decodeURIComponent(match[2]) : null
+    }
+    const cookieEmail = getCookie("email")
+    const cookieName = getCookie("name")
 
-    sdk.store.order
-      .list({
-        limit: 10,
-        order: "-created_at",
-        fields: "id,display_id,status,fulfillment_status,created_at,total,*items",
-      })
-      .then(({ orders }) => setOrders(orders as unknown as OrderSummary[]))
-      .catch((e) => {
-        console.error("Failed to load orders", e)
-        setOrders([])
-      })
+    if (cookieEmail) {
+      setCustomer({ name: cookieName || cookieEmail, email: cookieEmail })
+    } else {
+      sdk.store.customer
+        .retrieve()
+        .then(({ customer: c }) => {
+          const name = [c.first_name, c.last_name].filter(Boolean).join(" ")
+          setCustomer({ name: name || c.email, email: c.email })
+        })
+        .catch((e) => {
+          console.error("Failed to load customer", e)
+          setCustomerLoadFailed(true)
+        })
+    }
   }, [])
 
   const handleSignOut = async () => {
@@ -64,6 +51,8 @@ export default function ProfilePage() {
       console.error("Failed to clear cart from storage", e)
     }
     document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+    document.cookie = "email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+    document.cookie = "name=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
     router.push("/sign-in")
   }
 
@@ -110,72 +99,22 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Your Orders */}
-      <div className="mb-8">
-        <p
-          className="font-mono text-xs uppercase tracking-[0.07em] mb-3"
-          style={{ color: "var(--color-amber)" }}
+      <div className="flex flex-col gap-3 mb-8">
+        <Link
+          href="/profile/past-orders"
+          className="font-sans text-sm font-semibold text-center text-dark py-3 px-5 rounded-sm transition-colors hover:bg-card"
+          style={{ border: "1px solid var(--color-border-md)" }}
         >
-          Your orders
-        </p>
-
-        {orders === null ? (
-          <p className="font-sans text-sm text-muted animate-pulse">Loading your orders…</p>
-        ) : orders.length === 0 ? (
-          <p className="font-sans text-sm text-muted">
-            You haven&apos;t placed any orders yet.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {orders.map((order) => (
-              <li key={order.id}>
-                <Link
-                  href={`/orders/${order.id}`}
-                  className="flex items-center justify-between rounded-sm px-4 py-3 transition-colors hover:bg-card"
-                  style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
-                >
-                  <div>
-                    <p className="font-mono text-sm text-dark">
-                      #{order.display_id ?? order.id.slice(0, 8).toUpperCase()}
-                    </p>
-                    <p className="font-sans text-xs text-muted mt-0.5">
-                      {new Date(order.created_at).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                      {" · "}
-                      {order.items?.length ?? 0} {(order.items?.length ?? 0) === 1 ? "item" : "items"}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono text-sm text-dark">{formatPrice(order.total ?? 0)}</p>
-                    <p className="font-sans text-xs text-muted mt-0.5 capitalize">
-                      {order.fulfillment_status ?? order.status}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+          View past orders
+        </Link>
       </div>
 
       <div className="flex flex-col gap-3">
-        {orders && orders.length > 0 && (
-          <Link
-            href={`/orders/${orders[0].id}`}
-            className="font-sans text-sm font-medium text-dark py-2.5 px-5 rounded-sm transition-colors hover:bg-card text-center"
-            style={{ border: "1px solid var(--color-border-md)" }}
-          >
-            Track your last order
-          </Link>
-        )}
         <button
           type="button"
           onClick={handleSignOut}
           disabled={isSigningOut}
-          className="font-sans font-semibold text-sm text-cream py-2.5 px-5 rounded-sm transition-opacity hover:opacity-90 disabled:opacity-60"
+          className="font-sans font-semibold text-cream py-2.5 px-5 rounded-sm transition-opacity hover:opacity-90 disabled:opacity-60"
           style={{ background: "var(--color-brand)" }}
         >
           {isSigningOut ? "Signing out…" : "Sign out"}

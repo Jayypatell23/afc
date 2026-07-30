@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { sdk } from "@/lib/medusa"
-import OrderTracker from "@/components/OrderTracker"
 import { formatPrice } from "@/lib/format-price"
 
 interface OrderLineItem {
@@ -11,6 +10,11 @@ interface OrderLineItem {
   thumbnail?: string
 }
 
+interface OrderAddress {
+  address_1?: string
+  city?: string
+}
+
 interface Order {
   id: string
   display_id?: number
@@ -18,39 +22,20 @@ interface Order {
   fulfillment_status?: string
   items: OrderLineItem[]
   total?: number
+  metadata?: Record<string, unknown>
+  shipping_address?: OrderAddress
 }
 
 async function getOrder(id: string): Promise<Order | null> {
   try {
-    const { order } = await (sdk.store.order.retrieve(id) as Promise<{ order: unknown }>)
+    const { order } = await (sdk.store.order.retrieve(id, {
+      fields: "id,display_id,status,fulfillment_status,created_at,total,metadata,*items,*shipping_address",
+    }) as Promise<{ order: unknown }>)
     return order as Order
-  } catch {
+  } catch (err) {
+    console.error("Failed to retrieve order:", err)
     return null
   }
-}
-
-function getOrderSteps(order: Order) {
-  const status = order.fulfillment_status ?? order.status ?? ""
-  const steps = [
-    { label: "Order placed", completed: true },
-    {
-      label: "Preparing",
-      completed: ["preparing", "fulfilled", "shipped", "delivered", "ready"].some((s) =>
-        status.includes(s)
-      ),
-    },
-    {
-      label: "Ready for pickup",
-      completed: ["fulfilled", "shipped", "delivered", "ready"].some((s) =>
-        status.includes(s)
-      ),
-    },
-    {
-      label: "Collected",
-      completed: ["delivered", "collected"].some((s) => status.includes(s)),
-    },
-  ]
-  return steps
 }
 
 export default async function OrderPage({
@@ -72,8 +57,11 @@ export default async function OrderPage({
     )
   }
 
-  const steps = getOrderSteps(order)
   const orderTotal = order.total ?? 0
+  const isDelivery = order.metadata?.mode === "delivery"
+  const streetAddress = order.shipping_address?.address_1 || (order.metadata?.streetAddress as string | undefined)
+  const city = order.shipping_address?.city || (order.metadata?.city as string | undefined)
+  const deliveryAddress = [streetAddress, city].filter(Boolean).join(", ")
 
   return (
     <div className="max-w-lg mx-auto px-4 sm:px-6 py-10">
@@ -103,12 +91,26 @@ export default async function OrderPage({
       <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-dark text-center mb-2">
         Order confirmed
       </h1>
-      <p className="font-sans text-sm text-muted text-center mb-1">
-        Thanks for your order! It&apos;ll be ready at
-      </p>
-      <p className="font-sans text-sm font-medium text-dark text-center mb-8">
-        Ambica Food Corner, Shop No. 5
-      </p>
+
+      {isDelivery ? (
+        <>
+          <p className="font-sans text-sm text-muted text-center mb-1">
+            Thanks for your order! It will be delivered to
+          </p>
+          <p className="font-sans text-sm font-medium text-dark text-center mb-8">
+            {deliveryAddress || "your delivery address"}
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="font-sans text-sm text-muted text-center mb-1">
+            Thanks for your order! It&apos;ll be ready at
+          </p>
+          <p className="font-sans text-sm font-medium text-dark text-center mb-8">
+            Ambica Food Corner, Shop No. 5
+          </p>
+        </>
+      )}
 
       {/* Order meta */}
       <div
@@ -129,11 +131,6 @@ export default async function OrderPage({
           </p>
           <p className="font-mono text-sm text-dark mt-0.5">~15 min</p>
         </div>
-      </div>
-
-      {/* Step tracker */}
-      <div className="mb-10">
-        <OrderTracker steps={steps} />
       </div>
 
       {/* Order items */}
@@ -169,15 +166,6 @@ export default async function OrderPage({
           </ul>
         </div>
       )}
-
-      {/* View receipt */}
-      <button
-        type="button"
-        className="w-full font-sans text-sm font-medium text-dark py-3 rounded-sm transition-colors hover:bg-card"
-        style={{ border: "1px solid var(--color-border-md)", background: "transparent" }}
-      >
-        View receipt
-      </button>
 
       <div className="text-center mt-6">
         <Link

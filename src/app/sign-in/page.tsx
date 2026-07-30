@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { sdk } from "@/lib/medusa"
 import AuthShell from "@/components/auth/AuthShell"
 import AuthField from "@/components/auth/AuthField"
-import { LockIcon, MailIcon, SpinnerIcon, ArrowRightIcon } from "@/components/auth/AuthIcons"
+import { MailIcon, SpinnerIcon, ArrowRightIcon } from "@/components/auth/AuthIcons"
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/
 
@@ -24,17 +24,14 @@ function SignInForm() {
   const initialEmail = searchParams.get("email") || ""
 
   const [email, setEmail] = useState(initialEmail)
-  const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  // Only ever follow a same-site path (guards against an open-redirect via a
-  // crafted ?redirect= value pointing at an external URL).
   const redirectTarget = searchParams.get("redirect")
   const destination = redirectTarget?.startsWith("/") ? redirectTarget : "/menu"
   const isCheckout = redirectTarget === "/checkout" || redirectTarget?.startsWith("/checkout")
 
-  const emailValid = EMAIL_PATTERN.test(email)
-  const passwordValid = password.length >= 8
+  const cleanEmail = email.trim().toLowerCase()
+  const emailValid = EMAIL_PATTERN.test(cleanEmail)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,42 +42,30 @@ function SignInForm() {
       return
     }
 
-    if (!password || !passwordValid) {
-      setError("Password must be at least 8 characters long.")
-      return
-    }
-
     setIsSubmitting(true)
 
     try {
-      // Check if the customer email exists in the database
-      const checkResult = await sdk.client.fetch<{ exists: boolean }>(
-        "/store/customers/check-email",
-        { query: { email } }
-      ).catch((err) => {
-        console.error("Failed to check if email exists:", err)
-        return { exists: true } // Fallback to regular login flow on check failure
-      })
+      const result = await sdk.client.fetch<{ success: boolean; customer: { email: string; name: string } }>(
+        "/store/customers/passwordless-login",
+        {
+          method: "POST",
+          body: { email: cleanEmail },
+        }
+      )
 
-      if (!checkResult.exists) {
-        // User does not exist, redirect to the sign-up page with email pre-filled
-        const signUpUrl = `/sign-up?redirect=${encodeURIComponent(redirectTarget || "")}&email=${encodeURIComponent(email)}&notFound=1`
-        router.push(signUpUrl)
-        return
-      }
-
-      const result = await sdk.auth.login("customer", "emailpass", { email, password })
-
-      if (typeof result !== "string") {
-        setError("Additional authentication steps are required for this account.")
+      if (!result.success || !result.customer) {
+        setError("Account not found. Please try again or create an account.")
         return
       }
 
       document.cookie = "auth=1; path=/; max-age=2592000; SameSite=Lax"
+      document.cookie = `email=${encodeURIComponent(result.customer.email)}; path=/; max-age=2592000; SameSite=Lax`
+      document.cookie = `name=${encodeURIComponent(result.customer.name)}; path=/; max-age=2592000; SameSite=Lax`
+
       router.push(destination)
     } catch (err) {
       console.error("Sign in failed:", err)
-      setError("Incorrect password. Please try again.")
+      setError("Account not found. Please try again or create an account.")
     } finally {
       setIsSubmitting(false)
     }
@@ -116,17 +101,6 @@ function SignInForm() {
           inputMode="email"
         />
 
-        <AuthField
-          label="Password"
-          type="password"
-          value={password}
-          onChange={setPassword}
-          placeholder="Your password"
-          icon={<LockIcon className="w-full h-full" />}
-          valid={password.length > 0 && passwordValid}
-          autoComplete="current-password"
-        />
-
         {error && (
           <p role="alert" className="text-sm text-center -mt-1" style={{ color: "var(--color-brand)" }}>
             {error}
@@ -156,7 +130,7 @@ function SignInForm() {
       <p className="font-sans text-sm text-muted text-center mt-8">
         New here?{" "}
         <Link
-          href={redirectTarget ? `/sign-up?redirect=${encodeURIComponent(redirectTarget)}&email=${encodeURIComponent(email)}` : `/sign-up?email=${encodeURIComponent(email)}`}
+          href={redirectTarget ? `/sign-up?redirect=${encodeURIComponent(redirectTarget)}&email=${encodeURIComponent(cleanEmail)}` : `/sign-up?email=${encodeURIComponent(cleanEmail)}`}
           className="text-dark font-medium hover:text-brand transition-colors"
         >
           Create an account

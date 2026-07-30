@@ -1,15 +1,68 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
 import CartItem from "@/components/CartItem"
 import { formatPrice } from "@/lib/format-price"
 import EmptyState from "@/components/EmptyState"
+import { sdk } from "@/lib/medusa"
+
+interface OrderItem {
+  title: string
+  quantity: number
+  unit_price: number
+}
+
+interface OrderSummary {
+  id: string
+  display_id?: number
+  status: string
+  fulfillment_status?: string
+  created_at: string
+  total: number
+  items?: OrderItem[]
+}
+
+const ACTIVE_STATUSES = new Set(["not_fulfilled", "in_progress", "shipped"])
+
+function getCookie(name: string) {
+  if (typeof document === "undefined") return null
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]*)'))
+  return match ? decodeURIComponent(match[2]) : null
+}
+
+async function fetchActiveOrders(email: string): Promise<OrderSummary[]> {
+  const { orders } = await sdk.client.fetch<{ orders: any[] }>(
+    "/store/customers/email-orders",
+    { query: { email } }
+  )
+  return orders.filter((o) => ACTIVE_STATUSES.has(o.fulfillment_status))
+}
 
 export default function CartPage() {
   const { items, subtotal, isLoaded } = useCart()
+  const [activeOrders, setActiveOrders] = useState<OrderSummary[]>([])
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const orderTotal = subtotal
+
+  useEffect(() => {
+    const email = getCookie("email")
+    if (!email) return
+
+    // Initial fetch
+    fetchActiveOrders(email).then(setActiveOrders).catch(console.error)
+
+    // Poll every 20 seconds so fulfilled orders disappear automatically
+    pollRef.current = setInterval(() => {
+      fetchActiveOrders(email).then(setActiveOrders).catch(console.error)
+    }, 20_000)
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
+  }, [])
 
   if (!isLoaded) {
     return (
@@ -21,12 +74,6 @@ export default function CartPage() {
 
   return (
     <div className="max-w-xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-dark mb-1">
-        Your order
-      </h1>
-      <p className="font-sans text-sm text-muted mb-8">
-        Pickup · Ambica Food Corner · ~15 min
-      </p>
 
       {items.length === 0 ? (
         <EmptyState
@@ -87,6 +134,66 @@ export default function CartPage() {
             </Link>
           </div>
         </>
+      )}
+
+      {/* Your orders — live/active only, auto-updates via polling */}
+      {activeOrders.length > 0 && (
+        <div className="mt-12 pt-8" style={{ borderTop: "1px solid var(--color-border)" }}>
+          <h2 className="font-serif text-xl sm:text-2xl font-semibold text-dark mb-4">
+            Your orders
+          </h2>
+          <ul className="flex flex-col gap-4">
+            {activeOrders.map((order) => (
+              <li
+                key={order.id}
+                className="rounded-sm p-4"
+                style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
+              >
+                <div
+                  className="flex items-center justify-between pb-2 mb-2"
+                  style={{ borderBottom: "1px solid var(--color-border)" }}
+                >
+                  <div>
+                    <Link
+                      href={`/orders/${order.id}`}
+                      className="font-mono text-sm text-brand font-semibold hover:underline"
+                    >
+                      #{order.display_id ?? order.id.slice(0, 8).toUpperCase()}
+                    </Link>
+                    <p className="font-sans text-xs text-muted mt-0.5">
+                      {new Date(order.created_at).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono text-sm text-dark font-semibold">
+                      {formatPrice(order.total)}
+                    </p>
+                    <p className="font-sans text-xs text-brand font-medium mt-0.5 capitalize">
+                      {order.fulfillment_status?.replace("_", " ") ?? order.status}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Items */}
+                <div className="flex flex-col gap-1">
+                  {order.items?.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex justify-between font-sans text-xs text-muted"
+                    >
+                      <span>{item.quantity} × {item.title}</span>
+                      <span>{formatPrice(item.unit_price * item.quantity)}</span>
+                    </div>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   )

@@ -136,13 +136,24 @@ function ProfileDropdown() {
   }, [])
 
   useEffect(() => {
-    sdk.store.customer
-      .retrieve()
-      .then(({ customer: c }) => {
-        const name = [c.first_name, c.last_name].filter(Boolean).join(" ")
-        setCustomer({ name: name || c.email, email: c.email })
-      })
-      .catch((e) => console.error("Failed to load customer", e))
+    const getCookie = (name: string) => {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]*)'))
+      return match ? decodeURIComponent(match[2]) : null
+    }
+    const cookieEmail = getCookie("email")
+    const cookieName = getCookie("name")
+
+    if (cookieEmail) {
+      setCustomer({ name: cookieName || cookieEmail, email: cookieEmail })
+    } else {
+      sdk.store.customer
+        .retrieve()
+        .then(({ customer: c }) => {
+          const name = [c.first_name, c.last_name].filter(Boolean).join(" ")
+          setCustomer({ name: name || c.email, email: c.email })
+        })
+        .catch((e) => console.error("Failed to load customer", e))
+    }
   }, [])
 
   const handleSignOut = async () => {
@@ -160,6 +171,8 @@ function ProfileDropdown() {
     }
     // Remove auth cookie
     document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+    document.cookie = "email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+    document.cookie = "name=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
     setIsOpen(false)
     router.push("/sign-in")
   }
@@ -177,10 +190,16 @@ function ProfileDropdown() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 bg-cream border border-[var(--color-border)] rounded-md shadow-[0_8px_30px_rgb(0,0,0,0.08)] py-2 z-50">
           <div className="px-4 py-3 border-b border-[var(--color-border)]">
-            <p className="font-sans text-sm font-medium text-dark">{customer?.name ?? "…"}</p>
-            <p className="font-sans text-xs text-muted truncate mt-0.5">{customer?.email ?? ""}</p>
+            <Link
+              href="/profile"
+              onClick={() => setIsOpen(false)}
+              className="block group"
+            >
+              <p className="font-sans text-sm font-medium text-dark group-hover:text-[var(--color-brand)] transition-colors">{customer?.name ?? "…"}</p>
+              <p className="font-sans text-xs text-muted truncate mt-0.5 group-hover:text-dark transition-colors">{customer?.email ?? ""}</p>
+            </Link>
           </div>
-          <div className="px-2 py-2">
+          <div className="px-2 py-2 flex flex-col gap-0.5">
             <button
               onClick={handleSignOut}
               className="w-full text-left px-2 py-1.5 font-sans text-sm font-medium text-[var(--color-brand)] hover:bg-[var(--color-card)] rounded-sm transition-colors"
