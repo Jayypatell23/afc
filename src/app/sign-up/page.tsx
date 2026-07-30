@@ -72,9 +72,9 @@ function SignUpForm() {
       document.cookie = `name=${encodeURIComponent(result.customer.name)}; path=/; max-age=2592000; SameSite=Lax`
 
       router.push(destination)
-    } catch (err: any) {
+    } catch (err) {
       console.error("Sign up failed:", err)
-      const errorMsg = err?.message || ""
+      const errorMsg = (err as { message?: string })?.message || ""
       setError(
         errorMsg.toLowerCase().includes("already")
           ? "An account with this email already exists. Try signing in instead."

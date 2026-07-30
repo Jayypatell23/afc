@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
@@ -135,12 +135,15 @@ export default function CheckoutPage() {
       .catch((e) => console.error("Failed to load shipping options", e))
   }, [cart?.id])
 
-  const persistMetadata = async (updates: Record<string, unknown>) => {
-    if (!cart) return
-    const currentMetadata = (cart.metadata as Record<string, unknown>) || {}
-    const newMetadata = { ...currentMetadata, ...updates }
-    await updateCart({ metadata: newMetadata })
-  }
+  const persistMetadata = useCallback(
+    async (updates: Record<string, unknown>) => {
+      if (!cart) return
+      const currentMetadata = (cart.metadata as Record<string, unknown>) || {}
+      const newMetadata = { ...currentMetadata, ...updates }
+      await updateCart({ metadata: newMetadata })
+    },
+    [cart, updateCart]
+  )
 
   // Restore state from Medusa cart metadata on load
   useEffect(() => {
@@ -174,12 +177,14 @@ export default function CheckoutPage() {
     const cookieEmail = getCookie("email")
     const cookieName = getCookie("name")
 
-    if (cookieEmail && !email) setEmail(cookieEmail)
-    if (cookieName && !customerName) {
-      setCustomerName(cookieName)
-      persistMetadata({ customerName: cookieName })
-    }
-  }, [hasInitialized])
+    queueMicrotask(() => {
+      if (cookieEmail && !email) setEmail(cookieEmail)
+      if (cookieName && !customerName) {
+        setCustomerName(cookieName)
+        persistMetadata({ customerName: cookieName })
+      }
+    })
+  }, [hasInitialized, email, customerName, persistMetadata])
 
   const handleModeChange = async (newMode: DeliveryMode) => {
     setMode(newMode)

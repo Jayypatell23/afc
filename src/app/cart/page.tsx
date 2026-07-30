@@ -33,11 +33,11 @@ function getCookie(name: string) {
 }
 
 async function fetchActiveOrders(email: string): Promise<OrderSummary[]> {
-  const { orders } = await sdk.client.fetch<{ orders: any[] }>(
+  const { orders } = await sdk.client.fetch<{ orders: OrderSummary[] }>(
     "/store/customers/email-orders",
     { query: { email } }
   )
-  return orders.filter((o) => ACTIVE_STATUSES.has(o.fulfillment_status))
+  return orders.filter((o) => ACTIVE_STATUSES.has(o.fulfillment_status ?? ""))
 }
 
 export default function CartPage() {

@@ -144,7 +144,9 @@ function ProfileDropdown() {
     const cookieName = getCookie("name")
 
     if (cookieEmail) {
-      setCustomer({ name: cookieName || cookieEmail, email: cookieEmail })
+      queueMicrotask(() => {
+        setCustomer({ name: cookieName || cookieEmail, email: cookieEmail })
+      })
     } else {
       sdk.store.customer
         .retrieve()

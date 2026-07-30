@@ -32,7 +32,7 @@ export default function PastOrdersPage() {
     const cookieEmail = getCookie("email")
 
     if (cookieEmail) {
-      sdk.client.fetch<{ orders: any[] }>("/store/customers/email-orders", {
+      sdk.client.fetch<{ orders: OrderSummary[] }>("/store/customers/email-orders", {
         query: { email: cookieEmail }
       })
       .then(({ orders }) => {
@@ -46,7 +46,9 @@ export default function PastOrdersPage() {
         setOrders([])
       })
     } else {
-      setOrders([])
+      queueMicrotask(() => {
+        setOrders([])
+      })
     }
   }, [])
 
