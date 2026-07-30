@@ -12,7 +12,7 @@ interface Tab {
 }
 
 const LEFT_TABS: Tab[] = [
-  { href: "/menu", label: "Menu", icon: HomeIcon },
+  { href: "/", label: "Home", icon: HomeIcon },
   { href: "/find-us", label: "Find us", icon: PinIcon },
 ]
 

@@ -32,17 +32,18 @@ interface MenuPageBodyProps {
 
 export default function MenuPageBody({ products, categories }: MenuPageBodyProps) {
   return (
-    <div className="relative pt-10 sm:pt-14 pb-16 overflow-hidden">
+    <div className="relative pb-16 overflow-hidden" style={{ paddingTop: "4px" }}>
       {/* Oversized background wordmark */}
       <h1
         aria-hidden="true"
-        className="absolute inset-x-0 top-0 text-center font-heading uppercase select-none pointer-events-none whitespace-nowrap"
+        className="text-center font-heading uppercase select-none pointer-events-none whitespace-nowrap"
         style={{
           fontSize: "clamp(4rem, 15vw, 11rem)",
           color: "var(--color-brand)",
           opacity: 0.16,
           lineHeight: 0.85,
           letterSpacing: "-0.02em",
+          margin: 0,
         }}
       >
         Our Menu
@@ -51,7 +52,7 @@ export default function MenuPageBody({ products, categories }: MenuPageBodyProps
       <div
         className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 rounded-2xl sm:rounded-3xl"
         style={{
-          marginTop: "clamp(2.5rem, 9vw, 6rem)",
+          marginTop: "4px",
           background: "var(--color-cream)",
           border: "1px solid var(--color-border)",
           boxShadow: "0 20px 60px rgba(46,42,38,0.12)",

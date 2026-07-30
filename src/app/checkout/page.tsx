@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
@@ -13,6 +13,7 @@ import {
   ArrowRightIcon,
   BuildingIcon,
   LockIcon,
+  MailIcon,
   MapPinIcon,
   PhoneIcon,
   SpinnerIcon,
@@ -93,6 +94,7 @@ export default function CheckoutPage() {
   const [mode, setMode] = useState<DeliveryMode>("pickup")
   const [customerName, setCustomerName] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
+  const [email, setEmail] = useState("")
   const [streetAddress, setStreetAddress] = useState("")
   const [city, setCity] = useState("")
   const [orderNotes, setOrderNotes] = useState("")
@@ -100,11 +102,11 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<{
     customerName?: string
     mobileNumber?: string
+    email?: string
     streetAddress?: string
     city?: string
   }>({})
 
-  const [authenticatedEmail, setAuthenticatedEmail] = useState<string | null>(null)
   const [hasInitialized, setHasInitialized] = useState(false)
   const [shippingOptions, setShippingOptions] = useState<Record<DeliveryMode, ShippingOption | undefined>>({
     pickup: undefined,
@@ -133,12 +135,15 @@ export default function CheckoutPage() {
       .catch((e) => console.error("Failed to load shipping options", e))
   }, [cart?.id])
 
-  const persistMetadata = async (updates: Record<string, unknown>) => {
-    if (!cart) return
-    const currentMetadata = (cart.metadata as Record<string, unknown>) || {}
-    const newMetadata = { ...currentMetadata, ...updates }
-    await updateCart({ metadata: newMetadata })
-  }
+  const persistMetadata = useCallback(
+    async (updates: Record<string, unknown>) => {
+      if (!cart) return
+      const currentMetadata = (cart.metadata as Record<string, unknown>) || {}
+      const newMetadata = { ...currentMetadata, ...updates }
+      await updateCart({ metadata: newMetadata })
+    },
+    [cart, updateCart]
+  )
 
   // Restore state from Medusa cart metadata on load
   useEffect(() => {
@@ -162,33 +167,24 @@ export default function CheckoutPage() {
     }
   }, [isLoaded, cart, hasInitialized])
 
-  // Fetch the logged-in customer's profile if available to pre-fill Name and
-  // Mobile, and to remember their real email so it doesn't get overwritten
-  // by the guest placeholder below.
+  // Pre-fill fields from cookie if the user is already signed in
   useEffect(() => {
     if (!hasInitialized) return
-    sdk.store.customer
-      .retrieve()
-      .then(({ customer: c }) => {
-        if (c) {
-          const name = [c.first_name, c.last_name].filter(Boolean).join(" ")
-          if (name && !customerName) {
-            setCustomerName(name)
-            persistMetadata({ customerName: name })
-          }
-          if (c.phone && !mobileNumber) {
-            setMobileNumber(c.phone)
-            persistMetadata({ mobileNumber: c.phone })
-          }
-          if (c.email) {
-            setAuthenticatedEmail(c.email)
-          }
-        }
-      })
-      .catch((e) => {
-        // Not signed in or failed to retrieve is expected, ignore
-      })
-  }, [hasInitialized])
+    const getCookie = (name: string) => {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]*)'))
+      return match ? decodeURIComponent(match[2]) : null
+    }
+    const cookieEmail = getCookie("email")
+    const cookieName = getCookie("name")
+
+    queueMicrotask(() => {
+      if (cookieEmail && !email) setEmail(cookieEmail)
+      if (cookieName && !customerName) {
+        setCustomerName(cookieName)
+        persistMetadata({ customerName: cookieName })
+      }
+    })
+  }, [hasInitialized, email, customerName, persistMetadata])
 
   const handleModeChange = async (newMode: DeliveryMode) => {
     setMode(newMode)
@@ -237,6 +233,13 @@ export default function CheckoutPage() {
       newErrors.mobileNumber = "Please enter a valid 10-digit Indian mobile number"
     }
 
+    const cleanEmail = email.trim().toLowerCase()
+    if (!cleanEmail) {
+      newErrors.email = "Email is required"
+    } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cleanEmail)) {
+      newErrors.email = "Please enter a valid email address"
+    }
+
     if (mode === "delivery") {
       if (!streetAddress.trim()) {
         newErrors.streetAddress = "Street address is required"
@@ -258,6 +261,11 @@ export default function CheckoutPage() {
     setIsPlacingOrder(true)
 
     try {
+      // Automatically sign in the user on the browser with the entered email & name
+      document.cookie = "auth=1; path=/; max-age=2592000; SameSite=Lax"
+      document.cookie = `email=${encodeURIComponent(cleanEmail)}; path=/; max-age=2592000; SameSite=Lax`
+      document.cookie = `name=${encodeURIComponent(customerName.trim())}; path=/; max-age=2592000; SameSite=Lax`
+
       // Persist all latest data to Medusa cart metadata before completing
       await persistMetadata({
         customerName,
@@ -269,10 +277,8 @@ export default function CheckoutPage() {
       })
 
       await sdk.store.cart.update(cart.id, {
-        // Signed-in customers already have a real email on their cart —
-        // don't clobber it with the phone-based placeholder used for guest
-        // checkout, or their orders end up showing a fake address instead.
-        ...(authenticatedEmail ? {} : { email: `${cleanMobile}@guest.afcorner.local` }),
+        // Always use the customer-provided email so order history works.
+        email: cleanEmail,
         shipping_address: {
           first_name: customerName,
           address_1: mode === "delivery" ? streetAddress : "Ambica Food Corner, Shop No. 5",
@@ -479,6 +485,23 @@ export default function CheckoutPage() {
                 inputMode="tel"
                 maxLength={10}
               />
+            </div>
+            {/* Email — full width, mandatory for both modes */}
+            <div className="flex flex-col gap-1">
+              <AuthField
+                label="Email"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                placeholder="your@email.com"
+                icon={<MailIcon className="w-full h-full" />}
+                error={errors.email}
+                autoComplete="email"
+                inputMode="email"
+              />
+              <p className="font-sans text-xs" style={{ color: "var(--color-muted)", paddingLeft: "2px" }}>
+                Your bill will be sent here — please enter a valid email.
+              </p>
             </div>
           </section>
 

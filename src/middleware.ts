@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Anyone can browse the site and build a cart anonymously — sign-in is only
-// required to actually check out and to view account-specific pages.
-const PROTECTED_PREFIXES = ['/checkout', '/profile', '/orders']
+// Sign-in is only required to view account-specific pages like profile and order details.
+const PROTECTED_PREFIXES = ['/profile', '/orders']
 
 export function middleware(request: NextRequest) {
   const authCookie = request.cookies.get('auth')

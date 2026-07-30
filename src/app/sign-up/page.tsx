@@ -8,15 +8,12 @@ import AuthShell from "@/components/auth/AuthShell"
 import AuthField from "@/components/auth/AuthField"
 import {
   ArrowRightIcon,
-  LockIcon,
   MailIcon,
-  PhoneIcon,
   SpinnerIcon,
   UserIcon,
 } from "@/components/auth/AuthIcons"
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/
-const MOBILE_PATTERN = /^\d{10}$/
 
 export default function SignUpPage() {
   return (
@@ -37,17 +34,13 @@ function SignUpForm() {
   const wasNotFound = searchParams.get("notFound") === "1"
 
   const [name, setName] = useState("")
-  const [mobile, setMobile] = useState("")
   const [email, setEmail] = useState(initialEmail)
-  const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const cleanMobile = mobile.replace(/\D/g, "")
+  const cleanEmail = email.trim().toLowerCase()
   const nameValid = name.trim().length > 0
-  const mobileValid = MOBILE_PATTERN.test(cleanMobile)
-  const emailValid = EMAIL_PATTERN.test(email)
-  const passwordValid = password.length >= 8
+  const emailValid = EMAIL_PATTERN.test(cleanEmail)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,49 +51,32 @@ function SignUpForm() {
       return
     }
 
-    if (!cleanMobile || !mobileValid) {
-      setError("Please enter a valid 10-digit mobile number.")
-      return
-    }
-
     if (!email || !emailValid) {
       setError("Please enter a valid email address.")
-      return
-    }
-
-    if (!password || !passwordValid) {
-      setError("Password must be at least 8 characters long.")
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      const registrationToken = await sdk.auth.register("customer", "emailpass", { email, password })
-
-      const [first_name, ...rest] = name.trim().split(/\s+/)
-      const last_name = rest.join(" ")
-
-      await sdk.store.customer.create(
+      const result = await sdk.client.fetch<{ success: boolean; customer: { email: string; name: string } }>(
+        "/store/customers/passwordless-register",
         {
-          email,
-          first_name,
-          last_name: last_name || undefined,
-          phone: cleanMobile,
-        },
-        {},
-        { Authorization: `Bearer ${registrationToken}` }
+          method: "POST",
+          body: { email: cleanEmail, name: name.trim() },
+        }
       )
 
-      await sdk.auth.login("customer", "emailpass", { email, password })
-
       document.cookie = "auth=1; path=/; max-age=2592000; SameSite=Lax"
+      document.cookie = `email=${encodeURIComponent(result.customer.email)}; path=/; max-age=2592000; SameSite=Lax`
+      document.cookie = `name=${encodeURIComponent(result.customer.name)}; path=/; max-age=2592000; SameSite=Lax`
+
       router.push(destination)
     } catch (err) {
       console.error("Sign up failed:", err)
-      const message = err instanceof Error ? err.message : ""
+      const errorMsg = (err as { message?: string })?.message || ""
       setError(
-        message.toLowerCase().includes("already")
+        errorMsg.toLowerCase().includes("already")
           ? "An account with this email already exists. Try signing in instead."
           : "Something went wrong creating your account. Please try again."
       )
@@ -118,7 +94,6 @@ function SignUpForm() {
     >
       {wasNotFound ? (
         <div className="mb-6 p-4 rounded-md text-xs font-sans border flex items-center gap-3 bg-card border-brand/20 text-dark">
-
           <div>
             <p className="font-semibold">Account not found</p>
             <p className="text-muted mt-0.5">We couldn&apos;t find an account for <strong>{email}</strong>. Let&apos;s create one below to complete your order.</p>
@@ -147,19 +122,6 @@ function SignUpForm() {
         />
 
         <AuthField
-          label="Mobile number"
-          type="tel"
-          value={mobile}
-          onChange={setMobile}
-          placeholder="Your mobile number"
-          icon={<PhoneIcon className="w-full h-full" />}
-          valid={mobileValid}
-          autoComplete="tel"
-          inputMode="tel"
-          maxLength={10}
-        />
-
-        <AuthField
           label="Email"
           type="email"
           value={email}
@@ -169,17 +131,6 @@ function SignUpForm() {
           valid={email.length > 0 && emailValid}
           autoComplete="email"
           inputMode="email"
-        />
-
-        <AuthField
-          label="Password"
-          type="password"
-          value={password}
-          onChange={setPassword}
-          placeholder="8+ characters"
-          icon={<LockIcon className="w-full h-full" />}
-          valid={password.length > 0 && passwordValid}
-          autoComplete="new-password"
         />
 
         {error && (
@@ -211,7 +162,7 @@ function SignUpForm() {
       <p className="font-sans text-sm text-muted text-center mt-8">
         Already have an account?{" "}
         <Link
-          href={redirectTarget ? `/sign-in?redirect=${encodeURIComponent(redirectTarget)}&email=${encodeURIComponent(email)}` : `/sign-in?email=${encodeURIComponent(email)}`}
+          href={redirectTarget ? `/sign-in?redirect=${encodeURIComponent(redirectTarget)}&email=${encodeURIComponent(cleanEmail)}` : `/sign-in?email=${encodeURIComponent(cleanEmail)}`}
           className="text-dark font-medium hover:text-brand transition-colors"
         >
           Sign in

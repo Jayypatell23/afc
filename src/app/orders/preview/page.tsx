@@ -1,17 +1,11 @@
 import Link from "next/link"
-import OrderTracker from "@/components/OrderTracker"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Order Confirmed — Ambica Food Corner",
 }
 
-const STEPS = [
-  { label: "Order placed", completed: true },
-  { label: "Preparing", completed: true },
-  { label: "Ready for pickup", completed: false },
-  { label: "Collected", completed: false },
-]
+
 
 export default function OrderPreviewPage() {
   return (
@@ -70,10 +64,7 @@ export default function OrderPreviewPage() {
         </div>
       </div>
 
-      {/* Step tracker */}
-      <div className="mb-10">
-        <OrderTracker steps={STEPS} />
-      </div>
+
 
       {/* Info */}
       <div
