@@ -128,14 +128,6 @@ export default function FindUsPage() {
                     }}
                   >
                     {day}
-                    {isToday && (
-                      <span
-                        className="font-mono text-xs ml-2"
-                        style={{ color: "var(--color-amber)" }}
-                      >
-                        Today
-                      </span>
-                    )}
                   </span>
                   <span
                     className="font-mono text-sm"

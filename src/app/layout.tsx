@@ -4,6 +4,18 @@ import "./globals.css"
 import { CartProvider } from "@/lib/cart-context"
 import LayoutWrapper from "@/components/LayoutWrapper"
 
+const THEME_BOOT_SCRIPT = `
+(function () {
+  try {
+    var stored = localStorage.getItem("afc-theme");
+    var theme = stored === "dark" || stored === "light"
+      ? stored
+      : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  } catch (e) {}
+})();
+`
+
 const spectral = Spectral({
   variable: "--font-spectral",
   subsets: ["latin"],
@@ -46,8 +58,15 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="light"
+      suppressHydrationWarning
       className={`${spectral.variable} ${hanken.variable} ${spline.variable} ${anton.variable} h-full`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-cream text-dark antialiased">
         <CartProvider>
           <LayoutWrapper>

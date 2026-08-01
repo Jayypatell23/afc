@@ -16,7 +16,7 @@ interface OrderItem {
 
 interface OrderSummary {
   id: string
-  display_id?: number
+  customer_order_number?: number
   status: string
   fulfillment_status?: string
   created_at: string
@@ -158,7 +158,7 @@ export default function CartPage() {
                       href={`/orders/${order.id}`}
                       className="font-mono text-sm text-brand font-semibold hover:underline"
                     >
-                      #{order.display_id ?? order.id.slice(0, 8).toUpperCase()}
+                      #{order.customer_order_number ?? order.id.slice(0, 8).toUpperCase()}
                     </Link>
                     <p className="font-sans text-xs text-muted mt-0.5">
                       {new Date(order.created_at).toLocaleDateString("en-IN", {

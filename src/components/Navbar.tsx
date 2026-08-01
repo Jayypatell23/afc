@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import { sdk } from "@/lib/medusa"
+import ThemeToggle from "@/components/ThemeToggle"
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -64,6 +65,7 @@ export default function Navbar() {
 
         {/* Right side */}
         <div className="hidden md:flex items-center gap-4 flex-1 justify-end">
+          <ThemeToggle />
           {isAuthenticated ? (
             <ProfileDropdown />
           ) : (
@@ -92,7 +94,11 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Mobile — logo only handled above; menu access lives in MobileTabBar */}
+        {/* Mobile — logo handled above; menu access lives in MobileTabBar. Theme
+            toggle has no free slot in the (already full) tab bar, so it lives here. */}
+        <div className="flex md:hidden items-center">
+          <ThemeToggle />
+        </div>
       </div>
     </nav>
   )
