@@ -7,7 +7,7 @@ import { formatPrice } from "@/lib/format-price"
 
 interface OrderSummary {
   id: string
-  display_id?: number
+  customer_order_number?: number
   status: string
   fulfillment_status?: string
   created_at: string
@@ -84,7 +84,7 @@ export default function PastOrdersPage() {
               <div className="flex items-center justify-between border-b pb-2 mb-2" style={{ borderColor: "var(--color-border)" }}>
                 <div>
                   <p className="font-mono text-sm text-dark font-semibold">
-                    #{order.display_id ?? order.id.slice(0, 8).toUpperCase()}
+                    #{order.customer_order_number ?? order.id.slice(0, 8).toUpperCase()}
                   </p>
                   <p className="font-sans text-xs text-muted mt-0.5">
                     {new Date(order.created_at).toLocaleDateString("en-IN", {

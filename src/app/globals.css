@@ -23,17 +23,55 @@
   --font-heading: var(--font-anton);
 }
 
+/* Dark palette — same token names, inverted values. Applied via
+   [data-theme] set on <html> (see ThemeToggle + the inline boot script
+   in layout.tsx that avoids a flash of the wrong theme on load). */
+:root[data-theme="dark"] {
+  --color-cream: #1C1815;
+  --color-dark: #F2ECE3;
+  --color-brand: #D08A63;
+  --color-muted: #B7AC9E;
+  --color-faint: #8A8175;
+  --color-amber: #D08A63;
+  --color-border: #3A342E;
+  --color-border-md: #D08A63;
+  --color-card: #262019;
+  --color-input: #2A241D;
+  --color-toast-price: #D08A63;
+  --color-panel: #241E18;
+  --color-panel-deep: #171310;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --color-cream: #1C1815;
+    --color-dark: #F2ECE3;
+    --color-brand: #D08A63;
+    --color-muted: #B7AC9E;
+    --color-faint: #8A8175;
+    --color-amber: #D08A63;
+    --color-border: #3A342E;
+    --color-border-md: #D08A63;
+    --color-card: #262019;
+    --color-input: #2A241D;
+    --color-toast-price: #D08A63;
+    --color-panel: #241E18;
+    --color-panel-deep: #171310;
+  }
+}
+
 html {
-  background-color: #FAF6EE;
-  color: #2E2A26;
+  background-color: var(--color-cream);
+  color: var(--color-dark);
 }
 
 body {
-  background-color: #FAF6EE;
-  color: #2E2A26;
+  background-color: var(--color-cream);
+  color: var(--color-dark);
   font-family: var(--font-hanken), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 @keyframes afc-fade-up {
