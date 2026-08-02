@@ -499,9 +499,7 @@ export default function CheckoutPage() {
                 autoComplete="email"
                 inputMode="email"
               />
-              <p className="font-sans text-xs" style={{ color: "var(--color-muted)", paddingLeft: "2px" }}>
-                Your bill will be sent here — please enter a valid email.
-              </p>
+
             </div>
           </section>
 

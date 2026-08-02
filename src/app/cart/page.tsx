@@ -7,6 +7,7 @@ import CartItem from "@/components/CartItem"
 import { formatPrice } from "@/lib/format-price"
 import EmptyState from "@/components/EmptyState"
 import { sdk } from "@/lib/medusa"
+import { isActiveOrder } from "@/lib/order-status"
 
 interface OrderItem {
   title: string
@@ -24,8 +25,6 @@ interface OrderSummary {
   items?: OrderItem[]
 }
 
-const ACTIVE_STATUSES = new Set(["not_fulfilled", "in_progress", "shipped"])
-
 function getCookie(name: string) {
   if (typeof document === "undefined") return null
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]*)'))
@@ -37,7 +36,7 @@ async function fetchActiveOrders(email: string): Promise<OrderSummary[]> {
     "/store/customers/email-orders",
     { query: { email } }
   )
-  return orders.filter((o) => ACTIVE_STATUSES.has(o.fulfillment_status ?? ""))
+  return orders.filter((o) => isActiveOrder(o.fulfillment_status))
 }
 
 export default function CartPage() {
