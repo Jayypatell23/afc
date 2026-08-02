@@ -16,14 +16,14 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
   return (
     <>
-      {!isAuthPage && <Navbar />}
+      {!isAuthPage && <div className="print:hidden"><Navbar /></div>}
       <main className={`flex-1 ${!isAuthPage ? "pb-28 md:pb-0" : ""}`}>{children}</main>
-      {!isAuthPage && <Footer />}
-      {!isAuthPage && <MobileTabBar />}
+      {!isAuthPage && <div className="print:hidden"><Footer /></div>}
+      {!isAuthPage && <div className="print:hidden"><MobileTabBar /></div>}
 
       {/* Sticky Cart Summary — desktop only; mobile shows the cart FAB in MobileTabBar instead */}
       {showStickyCart && (
-        <div className="hidden md:flex fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-brand)] text-cream px-4 py-3 sm:px-6 items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.15)] animate-in slide-in-from-bottom-2 duration-300">
+        <div className="print:hidden hidden md:flex fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-brand)] text-cream px-4 py-3 sm:px-6 items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.15)] animate-in slide-in-from-bottom-2 duration-300">
           <div className="font-mono text-sm tracking-wide">
             {itemCount} {itemCount === 1 ? "item" : "items"} | {formatPrice(subtotal)}
           </div>

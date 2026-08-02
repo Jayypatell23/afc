@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { sdk } from "@/lib/medusa"
 import { formatPrice } from "@/lib/format-price"
+import ReceiptActions from "@/components/ReceiptActions"
+import type { BillData } from "@/lib/bill-template"
 
 interface OrderLineItem {
   id: string
@@ -13,6 +15,9 @@ interface OrderLineItem {
 interface OrderAddress {
   address_1?: string
   city?: string
+  province?: string
+  postal_code?: string
+  phone?: string
 }
 
 interface Order {
@@ -21,15 +26,22 @@ interface Order {
   status: string
   fulfillment_status?: string
   items: OrderLineItem[]
+  item_total?: number
+  shipping_total?: number
+  discount_total?: number
   total?: number
+  currency_code?: string
+  created_at?: string
   metadata?: Record<string, unknown>
+  customer?: { first_name?: string; last_name?: string }
   shipping_address?: OrderAddress
 }
 
 async function getOrder(id: string): Promise<Order | null> {
   try {
     const { order } = await (sdk.store.order.retrieve(id, {
-      fields: "id,email,status,fulfillment_status,created_at,total,metadata,*items,*shipping_address",
+      fields:
+        "id,email,status,fulfillment_status,created_at,currency_code,item_total,shipping_total,discount_total,total,metadata,customer.first_name,customer.last_name,*items,*shipping_address",
     }) as Promise<{ order: unknown }>)
     return order as Order
   } catch (err) {
@@ -76,11 +88,49 @@ export default async function OrderPage({
 
   const customerOrderNumber = await getCustomerOrderNumber(order.email, order.id)
   const orderTotal = order.total ?? 0
+  const subtotal =
+    order.item_total ?? order.items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
+  const shippingTotal = order.shipping_total ?? 0
+  const discountTotal = order.discount_total ?? 0
   const isDelivery = order.metadata?.mode === "delivery"
   const streetAddress = order.shipping_address?.address_1 || (order.metadata?.streetAddress as string | undefined)
   const city = order.shipping_address?.city || (order.metadata?.city as string | undefined)
   const deliveryAddress = [streetAddress, city].filter(Boolean).join(", ")
   const orderNotes = (order.metadata?.orderNotes as string | undefined)?.trim()
+
+  const billOrderNumber = customerOrderNumber ?? order.id.slice(0, 8).toUpperCase()
+  const orderLabel = `#${billOrderNumber}`
+  const billData: BillData = {
+    customerName:
+      [order.customer?.first_name, order.customer?.last_name].filter(Boolean).join(" ") || "there",
+    orderDisplayId: billOrderNumber,
+    orderDate: order.created_at,
+    currencyCode: order.currency_code || "INR",
+    items: order.items.map((item) => ({
+      title: item.title,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      total: item.unit_price * item.quantity,
+    })),
+    subtotal,
+    shippingTotal,
+    discountTotal,
+    total: orderTotal,
+    mode: (order.metadata?.mode as string | undefined) ?? "pickup",
+    shippingAddress: order.shipping_address,
+  }
+  const shareLines = [
+    `Ambica Food Corner — Order ${orderLabel}`,
+    ...order.items.map(
+      (item) => `${item.quantity} x ${item.title} — ${formatPrice(item.unit_price * item.quantity)}`
+    ),
+    `Subtotal: ${formatPrice(subtotal)}`,
+    `${isDelivery ? "Delivery" : "Pickup"}: ${formatPrice(shippingTotal)}`,
+    discountTotal > 0 ? `Discount: -${formatPrice(discountTotal)}` : null,
+    orderTotal > 0 ? `Total: ${formatPrice(orderTotal)}` : null,
+    isDelivery && deliveryAddress ? `Deliver to: ${deliveryAddress}` : null,
+  ].filter((line): line is string => Boolean(line))
+  const shareText = shareLines.join("\n")
 
   return (
     <div className="max-w-lg mx-auto px-4 sm:px-6 py-10">
@@ -152,6 +202,13 @@ export default async function OrderPage({
         </div>
       </div>
 
+      <ReceiptActions
+        shareTitle={`Ambica Food Corner — Order ${orderLabel}`}
+        shareText={shareText}
+        billData={billData}
+        orderDisplayId={billOrderNumber}
+      />
+
       {/* Order items */}
       {order.items.length > 0 && (
         <div className="mb-8">
@@ -176,6 +233,20 @@ export default async function OrderPage({
                 </span>
               </li>
             ))}
+            <li className="flex justify-between py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
+              <span className="font-sans text-sm text-muted">Subtotal</span>
+              <span className="font-mono text-sm text-dark">{formatPrice(subtotal)}</span>
+            </li>
+            <li className="flex justify-between py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
+              <span className="font-sans text-sm text-muted">{isDelivery ? "Delivery" : "Pickup"}</span>
+              <span className="font-mono text-sm text-dark">{formatPrice(shippingTotal)}</span>
+            </li>
+            {discountTotal > 0 && (
+              <li className="flex justify-between py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
+                <span className="font-sans text-sm text-muted">Discount</span>
+                <span className="font-mono text-sm text-dark">-{formatPrice(discountTotal)}</span>
+              </li>
+            )}
             {orderTotal > 0 && (
               <li className="flex justify-between py-3">
                 <span className="font-sans font-semibold text-sm text-dark">Total</span>
@@ -204,7 +275,7 @@ export default async function OrderPage({
         </div>
       )}
 
-      <div className="text-center mt-6">
+      <div className="print:hidden text-center mt-6">
         <Link
           href="/"
           className="font-mono text-xs uppercase tracking-[0.07em] text-muted hover:text-dark transition-colors"

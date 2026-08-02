@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { sdk } from "@/lib/medusa"
 import { formatPrice } from "@/lib/format-price"
+import { isActiveOrder } from "@/lib/order-status"
 
 interface OrderSummary {
   id: string
@@ -36,8 +37,11 @@ export default function PastOrdersPage() {
         query: { email: cookieEmail }
       })
       .then(({ orders }) => {
-        // Only show delivered orders in past orders
-        const past = orders.filter((o) => o.fulfillment_status === "delivered")
+        // Anything no longer active (delivered, fulfilled, canceled, etc.) counts as
+        // "past" — mirrors the cart page's active-order filter so an order can't end
+        // up missing from both lists just because staff used a different terminal
+        // status than "delivered" (e.g. marking a pickup order "fulfilled").
+        const past = orders.filter((o) => !isActiveOrder(o.fulfillment_status))
         setOrders(past)
       })
       .catch((e) => {
