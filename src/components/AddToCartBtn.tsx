@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { useCart } from "@/lib/cart-context"
+import { useOrderStatus } from "@/lib/order-status-context"
 import Toast from "@/components/Toast"
 
 interface AddToCartBtnProps {
@@ -13,6 +14,9 @@ interface AddToCartBtnProps {
   /** "pill" is the original rectangular Add/stepper. "circle" is a compact
    * floating +/stepper button meant to overlap a card's image corner. */
   variant?: "pill" | "circle"
+  /** Prevents adding new units (e.g. the item is out of stock). Existing
+   * cart quantities can still be adjusted. */
+  disabled?: boolean
 }
 
 export default function AddToCartBtn({
@@ -22,17 +26,21 @@ export default function AddToCartBtn({
   price,
   thumbnail,
   variant = "pill",
+  disabled = false,
 }: AddToCartBtnProps) {
   const { items, addItem, updateQuantity, removeItem } = useCart()
+  const { acceptingOrders } = useOrderStatus()
   const [toastVisible, setToastVisible] = useState(false)
 
   const cartItem = items.find((i) => i.variantId === variantId)
   const quantity = cartItem?.quantity || 0
+  const isDisabled = disabled || !acceptingOrders
 
   const handleAdd = useCallback(() => {
+    if (isDisabled) return
     addItem({ variantId, productTitle, variantTitle, price, thumbnail })
     setToastVisible(true)
-  }, [addItem, variantId, productTitle, variantTitle, price, thumbnail])
+  }, [isDisabled, addItem, variantId, productTitle, variantTitle, price, thumbnail])
 
   const handleDismiss = useCallback(() => setToastVisible(false), [])
 
@@ -43,8 +51,15 @@ export default function AddToCartBtn({
           <button
             type="button"
             onClick={handleAdd}
-            aria-label={`Add ${productTitle}`}
-            className="flex items-center justify-center w-9 h-9 rounded-full text-cream shadow-[0_4px_12px_rgba(46,42,38,0.3)] hover:opacity-90 active:scale-95 transition-all"
+            disabled={isDisabled}
+            aria-label={
+              disabled
+                ? `${productTitle} is out of stock`
+                : !acceptingOrders
+                  ? "Not accepting orders right now"
+                  : `Add ${productTitle}`
+            }
+            className="flex items-center justify-center w-9 h-9 rounded-full text-cream shadow-[0_4px_12px_rgba(46,42,38,0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none enabled:hover:opacity-90 enabled:active:scale-95"
             style={{ background: "var(--color-brand)" }}
           >
             <PlusIcon />
@@ -94,16 +109,17 @@ export default function AddToCartBtn({
         <button
           type="button"
           onClick={handleAdd}
-          className="font-mono text-xs uppercase tracking-[0.07em] hover:bg-dark hover:text-cream transition-colors"
+          disabled={isDisabled}
+          className="font-mono text-xs uppercase tracking-[0.07em] transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-dark enabled:hover:text-cream"
           style={{
             border: "1px solid var(--color-dark)",
             background: "transparent",
             padding: "6px 13px",
             borderRadius: 2,
-            cursor: "pointer",
+            cursor: isDisabled ? "not-allowed" : "pointer",
           }}
         >
-          Add
+          {disabled ? "Sold out" : !acceptingOrders ? "Closed" : "Add"}
         </button>
       ) : (
         <div

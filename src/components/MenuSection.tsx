@@ -1,14 +1,18 @@
 "use client"
 
-import { useState, useMemo, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import AddToCartBtn from "@/components/AddToCartBtn"
 import EmptyState from "@/components/EmptyState"
+import StockBadge from "@/components/StockBadge"
 import { formatPrice } from "@/lib/format-price"
+import { sdk } from "@/lib/medusa"
+import { MENU_PRODUCT_FIELDS, MENU_PAGE_SIZE } from "@/lib/menu-products"
 
 interface ProductVariant {
   id: string
   title: string
+  inventory_quantity?: number | null
   calculated_price?: {
     calculated_amount: number
     currency_code: string
@@ -21,6 +25,7 @@ interface Product {
   handle: string | null
   description: string | null
   thumbnail: string | null
+  images?: { url: string }[]
   variants: ProductVariant[]
   categories?: { id: string; name: string; handle: string }[]
 }
@@ -33,6 +38,7 @@ interface Category {
 
 interface MenuSectionProps {
   products: Product[]
+  totalCount: number
   categories: Category[]
 }
 
@@ -66,6 +72,17 @@ function ProductCard({ product }: { product: Product }) {
   const imgRef = useRef<HTMLImageElement>(null)
   const { text: description, badge } = splitDescriptionAndBadge(product.description)
 
+  // Products uploaded via admin media (without an explicit thumbnail set)
+  // only populate `images`, not `thumbnail` — match the product detail
+  // page's fallback so those still show a photo here instead of the
+  // placeholder mark.
+  const photoUrl = product.images?.[0]?.url ?? product.thumbnail ?? null
+
+  // Only variants with tracked inventory report a quantity — untracked
+  // items (inventory_quantity is null/undefined) are treated as available.
+  const trackedQuantity = variant?.inventory_quantity
+  const outOfStock = trackedQuantity != null && trackedQuantity <= 0
+
   // A 404'd thumbnail can finish loading (and fire its error event) before
   // hydration attaches onError — check the already-settled state on mount too.
   useEffect(() => {
@@ -85,12 +102,12 @@ function ProductCard({ product }: { product: Product }) {
           className="relative block aspect-[4/3]"
           style={{ background: "var(--color-card)" }}
         >
-          {product.thumbnail && !imgFailed ? (
+          {photoUrl && !imgFailed ? (
             // Plain img avoids next/image blocking localhost and private-IP hosts
             // eslint-disable-next-line @next/next/no-img-element
             <img
               ref={imgRef}
-              src={product.thumbnail}
+              src={photoUrl}
               alt={product.title}
               className="absolute inset-0 w-full h-full object-cover"
               loading="lazy"
@@ -121,6 +138,7 @@ function ProductCard({ product }: { product: Product }) {
               variantTitle={variant.title}
               price={price}
               thumbnail={product.thumbnail ?? undefined}
+              disabled={outOfStock}
             />
           </div>
         )}
@@ -138,41 +156,137 @@ function ProductCard({ product }: { product: Product }) {
             {description}
           </p>
         )}
-        {price > 0 && (
-          <span className="font-mono text-sm text-dark mt-1">{formatPrice(price)}</span>
-        )}
+        <div className="flex items-center justify-between mt-1">
+          {price > 0 && <span className="font-mono text-sm text-dark">{formatPrice(price)}</span>}
+          <StockBadge inStock={!outOfStock} />
+        </div>
       </div>
     </li>
   )
 }
 
-export default function MenuSection({ products, categories }: MenuSectionProps) {
+export default function MenuSection({ products: initialProducts, totalCount, categories }: MenuSectionProps) {
   const tabs = ["All", ...categories.map((c) => c.name)]
   const [activeTab, setActiveTab] = useState("All")
   const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
 
-  const filtered = useMemo(() => {
-    let list = products
+  const [products, setProducts] = useState(initialProducts)
+  const [count, setCount] = useState(totalCount)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
-    if (activeTab !== "All") {
-      list = list.filter((p) =>
-        p.categories?.some(
-          (c) => c.name.toLowerCase() === activeTab.toLowerCase()
-        )
-      )
-    }
+  // The server already gave us page 1 for the default (All, no search)
+  // state via SSR — skip re-fetching that exact same page on mount.
+  const isFirstRun = useRef(true)
+  // Guards against an in-flight fetch from a stale filter (e.g. a slow
+  // search request) overwriting the results of a filter changed after it.
+  const requestId = useRef(0)
 
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      list = list.filter(
+  // Debounce search input so every keystroke doesn't trigger a request.
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => clearTimeout(timeout)
+  }, [search])
+
+  const regionId = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID
+
+  const activeCategoryId = categories.find(
+    (c) => c.name.toLowerCase() === activeTab.toLowerCase()
+  )?.id
+
+  // Server-paginated: one page (in the active category) per call.
+  const fetchCategoryPage = useCallback(
+    async (offset: number) => {
+      const { products: fetched, count: fetchedCount } = await sdk.store.product.list({
+        fields: MENU_PRODUCT_FIELDS,
+        limit: MENU_PAGE_SIZE,
+        offset,
+        ...(regionId ? { region_id: regionId } : {}),
+        ...(activeCategoryId ? { category_id: [activeCategoryId] } : {}),
+      } as Parameters<typeof sdk.store.product.list>[0])
+
+      return { fetched: (fetched as unknown as Product[]) ?? [], fetchedCount }
+    },
+    [activeCategoryId, regionId]
+  )
+
+  // Medusa's store product search (`q`) isn't reliable without a search-engine
+  // module (MeiliSearch/Algolia) configured — tested against this store, it
+  // returned 39 of 46 products for "cheese". Fetch everything in the active
+  // category instead and filter by title/description client-side, same as
+  // this component did before server-side pagination was introduced.
+  const SEARCH_FETCH_PAGE_SIZE = 100
+  const fetchAllMatchingSearch = useCallback(
+    async (term: string) => {
+      const all: Product[] = []
+      let offset = 0
+      let total = Infinity
+      while (offset < total) {
+        const { products: fetched, count: fetchedCount } = await sdk.store.product.list({
+          fields: MENU_PRODUCT_FIELDS,
+          limit: SEARCH_FETCH_PAGE_SIZE,
+          offset,
+          ...(regionId ? { region_id: regionId } : {}),
+          ...(activeCategoryId ? { category_id: [activeCategoryId] } : {}),
+        } as Parameters<typeof sdk.store.product.list>[0])
+        all.push(...((fetched as unknown as Product[]) ?? []))
+        total = fetchedCount
+        offset += SEARCH_FETCH_PAGE_SIZE
+      }
+
+      const q = term.toLowerCase()
+      const matched = all.filter(
         (p) =>
           p.title.toLowerCase().includes(q) ||
           (p.description ?? "").toLowerCase().includes(q)
       )
+      return { fetched: matched, fetchedCount: matched.length }
+    },
+    [activeCategoryId, regionId]
+  )
+
+  // Re-fetch whenever the category or (debounced) search changes: page 1 of
+  // the category when browsing, or every matching product when searching
+  // (search results aren't paginated further — "Load more" only applies to
+  // plain category browsing).
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false
+      return
     }
 
-    return list
-  }, [products, activeTab, search])
+    const thisRequest = ++requestId.current
+    setIsLoading(true)
+    const run = debouncedSearch ? fetchAllMatchingSearch(debouncedSearch) : fetchCategoryPage(0)
+    run
+      .then(({ fetched, fetchedCount }) => {
+        if (thisRequest !== requestId.current) return
+        setProducts(fetched)
+        setCount(fetchedCount)
+      })
+      .catch((err) => console.error("[menu] Failed to filter products:", err))
+      .finally(() => {
+        if (thisRequest === requestId.current) setIsLoading(false)
+      })
+  }, [activeTab, debouncedSearch, fetchCategoryPage, fetchAllMatchingSearch])
+
+  const handleLoadMore = async () => {
+    const thisRequest = requestId.current
+    setIsLoadingMore(true)
+    try {
+      const { fetched, fetchedCount } = await fetchCategoryPage(products.length)
+      if (thisRequest !== requestId.current) return
+      setProducts((prev) => [...prev, ...fetched])
+      setCount(fetchedCount)
+    } catch (err) {
+      console.error("[menu] Failed to load more products:", err)
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
+
+  const hasMore = products.length < count
 
   return (
     <section>
@@ -235,7 +349,7 @@ export default function MenuSection({ products, categories }: MenuSectionProps) 
       </div>
 
       {/* Items */}
-      {filtered.length === 0 ? (
+      {!isLoading && products.length === 0 ? (
         <EmptyState
           title={search ? "No results found" : "No items available"}
           description={
@@ -245,14 +359,36 @@ export default function MenuSection({ products, categories }: MenuSectionProps) 
           }
         />
       ) : (
-        <ul
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
-          role="list"
-        >
-          {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </ul>
+        <>
+          <ul
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+            role="list"
+            aria-busy={isLoading}
+            style={{ opacity: isLoading ? 0.5 : 1, transition: "opacity 150ms" }}
+          >
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </ul>
+
+          {hasMore && (
+            <div className="flex justify-center mt-8">
+              <button
+                type="button"
+                onClick={handleLoadMore}
+                disabled={isLoadingMore || isLoading}
+                className="font-mono text-xs uppercase tracking-[0.07em] px-6 py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  color: "var(--color-dark)",
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-card)",
+                }}
+              >
+                {isLoadingMore ? "Loading…" : "Load more"}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </section>
   )

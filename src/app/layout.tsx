@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Spectral, Hanken_Grotesk, Spline_Sans_Mono, Anton } from "next/font/google"
 import "./globals.css"
 import { CartProvider } from "@/lib/cart-context"
+import { OrderStatusProvider } from "@/lib/order-status-context"
 import LayoutWrapper from "@/components/LayoutWrapper"
 
 const THEME_BOOT_SCRIPT = `
@@ -68,11 +69,13 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-cream text-dark antialiased">
-        <CartProvider>
-          <LayoutWrapper>
-            {children}
-          </LayoutWrapper>
-        </CartProvider>
+        <OrderStatusProvider>
+          <CartProvider>
+            <LayoutWrapper>
+              {children}
+            </LayoutWrapper>
+          </CartProvider>
+        </OrderStatusProvider>
       </body>
     </html>
   )

@@ -3,6 +3,7 @@ import MenuSection from "@/components/MenuSection"
 interface ProductVariant {
   id: string
   title: string
+  inventory_quantity?: number | null
   calculated_price?: {
     calculated_amount: number
     currency_code: string
@@ -15,6 +16,7 @@ interface Product {
   handle: string | null
   description: string | null
   thumbnail: string | null
+  images?: { url: string }[]
   variants: ProductVariant[]
   categories?: { id: string; name: string; handle: string }[]
 }
@@ -27,10 +29,11 @@ interface Category {
 
 interface MenuPageBodyProps {
   products: Product[]
+  totalCount: number
   categories: Category[]
 }
 
-export default function MenuPageBody({ products, categories }: MenuPageBodyProps) {
+export default function MenuPageBody({ products, totalCount, categories }: MenuPageBodyProps) {
   return (
     <div className="relative pb-16 overflow-hidden" style={{ paddingTop: "4px" }}>
       {/* Oversized background wordmark */}
@@ -60,7 +63,7 @@ export default function MenuPageBody({ products, categories }: MenuPageBodyProps
       >
         <div className="py-8 sm:py-10 px-4 sm:px-8">
           <p className="sr-only">Our menu</p>
-          <MenuSection products={products} categories={categories} />
+          <MenuSection products={products} totalCount={totalCount} categories={categories} />
         </div>
       </div>
     </div>

@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
+import { useOrderStatus } from "@/lib/order-status-context"
 import { formatPrice } from "@/lib/format-price"
 import { sdk } from "@/lib/medusa"
+import { reportClientError } from "@/lib/report-error"
 import CartItemRow from "@/components/CartItem"
 import EmptyState from "@/components/EmptyState"
 import AuthField from "@/components/auth/AuthField"
@@ -17,7 +19,9 @@ import {
   MapPinIcon,
   PhoneIcon,
   SpinnerIcon,
+  TagIcon,
   UserIcon,
+  XIcon,
 } from "@/components/auth/AuthIcons"
 
 type DeliveryMode = "pickup" | "delivery"
@@ -57,6 +61,19 @@ function loadRazorpayScript(): Promise<boolean> {
   })
 }
 
+// Retries a flaky request a couple of times with backoff before giving up.
+// Used for the shipping-options fetch, whose one-shot failure used to
+// silently leave checkout unable to place an order in Pickup mode.
+async function withRetry<T>(fn: () => Promise<T>, retries = 2, delayMs = 700): Promise<T> {
+  try {
+    return await fn()
+  } catch (err) {
+    if (retries <= 0) throw err
+    await new Promise((resolve) => setTimeout(resolve, delayMs))
+    return withRetry(fn, retries - 1, delayMs * 2)
+  }
+}
+
 function ModeTab({
   active,
   onClick,
@@ -85,11 +102,27 @@ function ModeTab({
 }
 
 export default function CheckoutPage() {
-  const { items, total, subtotal, resetCartState, isLoaded, cart, updateCart } = useCart()
+  const {
+    items,
+    total,
+    subtotal,
+    resetCartState,
+    isLoaded,
+    cart,
+    updateCart,
+    applyPromoCode,
+    removePromoCode,
+  } = useCart()
+  const { acceptingOrders, message: closedMessage } = useOrderStatus()
   const router = useRouter()
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const [orderError, setOrderError] = useState<string | null>(null)
+
+  const [promoCode, setPromoCode] = useState("")
+  const [promoError, setPromoError] = useState<string | null>(null)
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false)
+  const [removingPromoCode, setRemovingPromoCode] = useState<string | null>(null)
 
   const [mode, setMode] = useState<DeliveryMode>("pickup")
   const [customerName, setCustomerName] = useState("")
@@ -112,28 +145,50 @@ export default function CheckoutPage() {
     pickup: undefined,
     delivery: undefined,
   })
+  const [shippingOptionsError, setShippingOptionsError] = useState<string | null>(null)
+  const [isLoadingShippingOptions, setIsLoadingShippingOptions] = useState(false)
 
   // Fetch the real Pickup / Delivery shipping options (with their live prices)
   // as soon as we have a cart, so the delivery charge shown here always matches
-  // what will actually be applied to the cart at checkout.
-  useEffect(() => {
-    if (!cart?.id) return
-    sdk.store.fulfillment
-      .listCartOptions({ cart_id: cart.id })
-      .then(({ shipping_options }) => {
-        const pickup = shipping_options?.find(
-          (o: { name: string }) => o.name === SHIPPING_OPTION_NAMES.pickup
-        )
-        const delivery = shipping_options?.find(
-          (o: { name: string }) => o.name === SHIPPING_OPTION_NAMES.delivery
-        )
-        setShippingOptions({
-          pickup: pickup && { id: pickup.id, name: pickup.name, amount: pickup.amount ?? 0 },
-          delivery: delivery && { id: delivery.id, name: delivery.name, amount: delivery.amount ?? 0 },
-        })
+  // what will actually be applied to the cart at checkout. Retries a couple
+  // times on transient failures (e.g. backend cold start) before surfacing
+  // an error — a silent one-shot failure here used to leave Pickup checkout
+  // (which has no loading gate of its own) able to reach "Pay" and then fail
+  // with a generic error.
+  const cartId = cart?.id
+  const loadShippingOptions = useCallback(async () => {
+    if (!cartId) return
+    setShippingOptionsError(null)
+    setIsLoadingShippingOptions(true)
+    try {
+      const { shipping_options } = await withRetry(() =>
+        sdk.store.fulfillment.listCartOptions({ cart_id: cartId })
+      )
+      const pickup = shipping_options?.find(
+        (o: { name: string }) => o.name === SHIPPING_OPTION_NAMES.pickup
+      )
+      const delivery = shipping_options?.find(
+        (o: { name: string }) => o.name === SHIPPING_OPTION_NAMES.delivery
+      )
+      setShippingOptions({
+        pickup: pickup && { id: pickup.id, name: pickup.name, amount: pickup.amount ?? 0 },
+        delivery: delivery && { id: delivery.id, name: delivery.name, amount: delivery.amount ?? 0 },
       })
-      .catch((e) => console.error("Failed to load shipping options", e))
-  }, [cart?.id])
+    } catch (err) {
+      reportClientError("checkout.load_shipping_options", err, { cartId })
+      setShippingOptionsError("Couldn't load delivery details.")
+    } finally {
+      setIsLoadingShippingOptions(false)
+    }
+  }, [cartId])
+
+  useEffect(() => {
+    // Deferred, matching this file's existing convention (see hasInitialized
+    // below) for keeping setState calls out of the effect's synchronous body.
+    setTimeout(() => {
+      loadShippingOptions()
+    }, 0)
+  }, [loadShippingOptions])
 
   const persistMetadata = useCallback(
     async (updates: Record<string, unknown>) => {
@@ -219,7 +274,37 @@ export default function CheckoutPage() {
     persistMetadata({ orderNotes })
   }
 
+  async function handleApplyPromoCode() {
+    const code = promoCode.trim().toUpperCase()
+    if (!code) return
+
+    setPromoError(null)
+    setIsApplyingPromo(true)
+    try {
+      await applyPromoCode(code)
+      setPromoCode("")
+    } catch (err) {
+      console.error("Failed to apply promo code:", err)
+      setPromoError("That promo code isn't valid or has expired.")
+    } finally {
+      setIsApplyingPromo(false)
+    }
+  }
+
+  async function handleRemovePromoCode(code: string) {
+    setRemovingPromoCode(code)
+    try {
+      await removePromoCode(code)
+    } catch (err) {
+      console.error("Failed to remove promo code:", err)
+    } finally {
+      setRemovingPromoCode(null)
+    }
+  }
+
   async function handlePlaceOrder() {
+    if (!acceptingOrders) return
+
     // Run validation
     const newErrors: typeof errors = {}
     if (!customerName.trim()) {
@@ -233,10 +318,9 @@ export default function CheckoutPage() {
       newErrors.mobileNumber = "Please enter a valid 10-digit Indian mobile number"
     }
 
+    // Optional — only validate format if the customer actually entered one.
     const cleanEmail = email.trim().toLowerCase()
-    if (!cleanEmail) {
-      newErrors.email = "Email is required"
-    } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cleanEmail)) {
+    if (cleanEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cleanEmail)) {
       newErrors.email = "Please enter a valid email address"
     }
 
@@ -260,10 +344,17 @@ export default function CheckoutPage() {
     setOrderError(null)
     setIsPlacingOrder(true)
 
+    // Email is optional. Medusa's order/customer creation needs some email
+    // to key a guest customer record on, so fall back to a synthetic one
+    // built from the (required) mobile number rather than leaving it blank —
+    // keeps the same phone number consistently identifying the same guest
+    // customer across orders even when they never type a real email.
+    const effectiveEmail = cleanEmail || `${cleanMobile}@guest.ambicafoodcorner.local`
+
     try {
       // Automatically sign in the user on the browser with the entered email & name
       document.cookie = "auth=1; path=/; max-age=2592000; SameSite=Lax"
-      document.cookie = `email=${encodeURIComponent(cleanEmail)}; path=/; max-age=2592000; SameSite=Lax`
+      document.cookie = `email=${encodeURIComponent(effectiveEmail)}; path=/; max-age=2592000; SameSite=Lax`
       document.cookie = `name=${encodeURIComponent(customerName.trim())}; path=/; max-age=2592000; SameSite=Lax`
 
       // Persist all latest data to Medusa cart metadata before completing
@@ -277,8 +368,9 @@ export default function CheckoutPage() {
       })
 
       await sdk.store.cart.update(cart.id, {
-        // Always use the customer-provided email so order history works.
-        email: cleanEmail,
+        // Real email if given, otherwise the synthetic phone-based one so
+        // order history / customer records always have something to key on.
+        email: effectiveEmail,
         shipping_address: {
           first_name: customerName,
           address_1: mode === "delivery" ? streetAddress : "Ambica Food Corner, Shop No. 5",
@@ -361,11 +453,11 @@ export default function CheckoutPage() {
               resetCartState()
               router.push(`/orders/${result.order.id}`)
             } else {
-              console.error("Cart complete error:", result.error)
+              reportClientError("checkout.cart_complete_error", result.error, { cartId: cart.id })
               setOrderError("Payment succeeded but placing the order failed. Please contact us.")
             }
           } catch (err) {
-            console.error("Failed to complete order after payment:", err)
+            reportClientError("checkout.complete_after_payment", err, { cartId: cart.id })
             setOrderError("Payment succeeded but placing the order failed. Please contact us.")
           } finally {
             setIsPlacingOrder(false)
@@ -377,13 +469,17 @@ export default function CheckoutPage() {
           },
         },
       })
-      razorpay.on("payment.failed", () => {
+      razorpay.on("payment.failed", (response: unknown) => {
+        reportClientError("checkout.payment_failed", new Error("Razorpay payment.failed"), {
+          cartId: cart.id,
+          response,
+        })
         setOrderError("Payment failed. Please try again.")
         setIsPlacingOrder(false)
       })
       razorpay.open()
     } catch (err) {
-      console.error("Failed to place order:", err)
+      reportClientError("checkout.place_order", err, { cartId: cart.id, mode })
       setOrderError("Something went wrong placing your order. Please try again.")
       setIsPlacingOrder(false)
     }
@@ -393,8 +489,13 @@ export default function CheckoutPage() {
   // charge) a different price than the shipping option actually configured
   // on the store.
   const deliveryOptionLoaded = shippingOptions.delivery !== undefined
+  // Gates the Pay button for whichever mode is currently selected — Pickup
+  // needs this check just as much as Delivery does, since it also resolves
+  // a shipping option server-side before payment can be initiated.
+  const currentModeOptionLoaded = shippingOptions[mode] !== undefined
   const deliveryCharge = mode === "delivery" ? shippingOptions.delivery?.amount ?? 0 : 0
   const backendShippingTotal = cart?.shipping_total ?? 0
+  const discountTotal = cart?.discount_total ?? 0
   const baseTotal = (total || subtotal) - backendShippingTotal
   const orderTotal = baseTotal + deliveryCharge
 
@@ -486,10 +587,10 @@ export default function CheckoutPage() {
                 maxLength={10}
               />
             </div>
-            {/* Email — full width, mandatory for both modes */}
+            {/* Email — optional, full width */}
             <div className="flex flex-col gap-1">
               <AuthField
-                label="Email"
+                label="Email (optional)"
                 type="email"
                 value={email}
                 onChange={setEmail}
@@ -601,6 +702,85 @@ export default function CheckoutPage() {
             ))}
           </ul>
 
+          {/* Promo code */}
+          <section aria-label="Promo code" className="flex flex-col gap-2">
+            {cart?.promotions && cart.promotions.length > 0 && (
+              <ul className="flex flex-wrap gap-2 mb-1">
+                {cart.promotions.map((promo) => (
+                  <li
+                    key={promo.id}
+                    className="flex items-center gap-1.5 rounded-full pl-3 pr-1.5 py-1"
+                    style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
+                  >
+                    <TagIcon className="w-3.5 h-3.5 text-brand" />
+                    <span className="font-mono text-xs tracking-[0.04em] text-dark">{promo.code}</span>
+                    <button
+                      type="button"
+                      onClick={() => promo.code && handleRemovePromoCode(promo.code)}
+                      disabled={removingPromoCode === promo.code}
+                      aria-label={`Remove promo code ${promo.code}`}
+                      className="flex items-center justify-center rounded-full text-faint hover:text-dark transition-colors disabled:opacity-50"
+                      style={{ width: 18, height: 18 }}
+                    >
+                      <XIcon className="w-3 h-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex gap-2">
+              <div
+                className="flex items-center gap-2.5 flex-1 rounded-md px-3.5 py-2.5 transition-colors duration-200 focus-within:ring-2 focus-within:ring-offset-1"
+                style={{
+                  background: "var(--color-input)",
+                  border: `1px solid ${promoError ? "var(--color-brand)" : "var(--color-border)"}`,
+                  ["--tw-ring-color" as string]: "var(--color-brand)",
+                  ["--tw-ring-offset-color" as string]: "var(--color-cream)",
+                }}
+              >
+                <span className="text-faint shrink-0" aria-hidden="true" style={{ width: 16, height: 16 }}>
+                  <TagIcon className="w-full h-full" />
+                </span>
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      handleApplyPromoCode()
+                    }
+                  }}
+                  placeholder="PROMO CODE"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  aria-label="Promo code"
+                  aria-invalid={!!promoError}
+                  className="w-full bg-transparent font-mono text-sm uppercase tracking-[0.04em] text-dark placeholder:text-faint placeholder:normal-case placeholder:tracking-normal outline-none min-w-0"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleApplyPromoCode}
+                disabled={isApplyingPromo || !promoCode.trim()}
+                className="font-mono text-xs uppercase tracking-[0.06em] px-4 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                style={{
+                  background: "var(--color-card)",
+                  border: "1px solid var(--color-border)",
+                  color: "var(--color-dark)",
+                }}
+              >
+                {isApplyingPromo ? "…" : "Apply"}
+              </button>
+            </div>
+            {promoError && (
+              <p role="alert" className="font-sans text-xs" style={{ color: "var(--color-brand)" }}>
+                {promoError}
+              </p>
+            )}
+          </section>
+
           <div className="flex flex-col gap-2 pt-1" style={{ borderTop: "1px solid var(--color-border)" }}>
             <div className="flex justify-between pt-3">
               <span className="font-sans text-sm text-muted">Subtotal</span>
@@ -611,6 +791,14 @@ export default function CheckoutPage() {
                 <span className="font-sans text-sm text-muted">Delivery charge</span>
                 <span className="font-mono text-sm text-dark">
                   {deliveryOptionLoaded ? formatPrice(deliveryCharge) : "Calculating…"}
+                </span>
+              </div>
+            )}
+            {discountTotal > 0 && (
+              <div className="flex justify-between">
+                <span className="font-sans text-sm text-muted">Discount</span>
+                <span className="font-mono text-sm" style={{ color: "var(--color-brand)" }}>
+                  −{formatPrice(discountTotal)}
                 </span>
               </div>
             )}
@@ -629,10 +817,34 @@ export default function CheckoutPage() {
             </p>
           )}
 
+          {!acceptingOrders && (
+            <p role="alert" className="font-sans text-xs text-center" style={{ color: "var(--color-brand)" }}>
+              {closedMessage ?? "We're not accepting orders right now."}
+            </p>
+          )}
+
+          {shippingOptionsError && (
+            <p role="alert" className="font-sans text-xs text-center" style={{ color: "var(--color-brand)" }}>
+              {shippingOptionsError}{" "}
+              <button
+                type="button"
+                onClick={loadShippingOptions}
+                className="underline underline-offset-2 hover:opacity-80"
+              >
+                Retry
+              </button>
+            </p>
+          )}
+
           <button
             type="button"
             onClick={handlePlaceOrder}
-            disabled={isPlacingOrder || (mode === "delivery" && !deliveryOptionLoaded)}
+            disabled={
+              !acceptingOrders ||
+              isPlacingOrder ||
+              isLoadingShippingOptions ||
+              !currentModeOptionLoaded
+            }
             className="group flex items-center justify-center gap-2 w-full font-sans font-semibold text-sm text-cream py-3.5 rounded-md transition-all duration-200 hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             style={{ background: "var(--color-brand)" }}
           >
@@ -641,6 +853,8 @@ export default function CheckoutPage() {
                 <SpinnerIcon className="w-4 h-4" />
                 Processing…
               </>
+            ) : !acceptingOrders ? (
+              "Not accepting orders"
             ) : (
               <>
                 Pay {formatPrice(orderTotal)}

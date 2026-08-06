@@ -11,6 +11,7 @@ export const revalidate = 60
 interface ProductVariant {
   id: string
   title: string
+  inventory_quantity?: number | null
   calculated_price?: {
     calculated_amount: number
   }
@@ -32,7 +33,7 @@ async function getProduct(handle: string): Promise<Product | null> {
     const { products } = await sdk.store.product.list({
       handle,
       fields:
-        "id,title,handle,description,thumbnail,*variants,*images,+variants.calculated_price",
+        "id,title,handle,description,thumbnail,*variants,*images,+variants.calculated_price,+variants.inventory_quantity",
       ...(regionId ? { region_id: regionId } : {}),
     } as Parameters<typeof sdk.store.product.list>[0])
     const list = products as unknown as Product[]
@@ -64,6 +65,7 @@ export default async function ProductPage({
     id: v.id,
     title: v.title,
     price: v.calculated_price?.calculated_amount ?? 0,
+    inventoryQuantity: v.inventory_quantity ?? null,
   }))
 
   const firstPrice = variants[0]?.price ?? 0
