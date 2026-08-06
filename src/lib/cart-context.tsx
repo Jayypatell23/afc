@@ -37,12 +37,19 @@ export interface MedusaCartItem {
   thumbnail?: string
 }
 
+export interface MedusaPromotion {
+  id: string
+  code?: string | null
+}
+
 export interface MedusaCart {
   id: string
   items?: MedusaCartItem[]
   total?: number
   subtotal?: number
   shipping_total?: number
+  discount_total?: number
+  promotions?: MedusaPromotion[]
   metadata?: Record<string, unknown> | null
 }
 
@@ -59,6 +66,8 @@ interface CartContextValue {
   isLoaded: boolean
   cart: MedusaCart | null
   updateCart: (data: Record<string, unknown>) => Promise<void>
+  applyPromoCode: (code: string) => Promise<void>
+  removePromoCode: (code: string) => Promise<void>
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
@@ -275,6 +284,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [getOrRetrieveCart]
   )
 
+  // Promo codes are always stored/sent upper-case, matching how they're
+  // configured in the Medusa admin.
+  const applyPromoCode = useCallback(
+    async (code: string) => {
+      const activeCart = await getOrRetrieveCart()
+      if (!activeCart) return
+
+      const { cart: updatedCart } = await sdk.store.cart.addPromotions(activeCart.id, {
+        promo_codes: [code.trim().toUpperCase()],
+      })
+      setCart(updatedCart as MedusaCart)
+    },
+    [getOrRetrieveCart]
+  )
+
+  const removePromoCode = useCallback(
+    async (code: string) => {
+      const activeCart = await getOrRetrieveCart()
+      if (!activeCart) return
+
+      const { cart: updatedCart } = await sdk.store.cart.removePromotions(activeCart.id, {
+        promo_codes: [code.trim().toUpperCase()],
+      })
+      setCart(updatedCart as MedusaCart)
+    },
+    [getOrRetrieveCart]
+  )
+
   // Map state values
   const items = cart ? mapCartItems(cart.items ?? []) : []
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
@@ -296,6 +333,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         isLoaded,
         cart,
         updateCart,
+        applyPromoCode,
+        removePromoCode,
       }}
     >
       {children}

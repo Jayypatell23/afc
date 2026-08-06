@@ -3,6 +3,7 @@ import { usePathname } from "next/navigation"
 import Navbar from "@/components/Navbar"
 import MobileTabBar from "@/components/MobileTabBar"
 import Footer from "@/components/Footer"
+import OrderStatusBanner from "@/components/OrderStatusBanner"
 import { useCart } from "@/lib/cart-context"
 import Link from "next/link"
 import { formatPrice } from "@/lib/format-price"
@@ -16,6 +17,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
   return (
     <>
+      {!isAuthPage && <OrderStatusBanner />}
       {!isAuthPage && <div className="print:hidden"><Navbar /></div>}
       <main className={`flex-1 ${!isAuthPage ? "pb-28 md:pb-0" : ""}`}>{children}</main>
       {!isAuthPage && <div className="print:hidden"><Footer /></div>}
